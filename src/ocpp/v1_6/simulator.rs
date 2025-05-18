@@ -1,4 +1,15 @@
-use tracing::info;
+use std::{sync::Arc, time::Duration};
+
+use serde_json::json;
+use tokio::sync::Mutex;
+use tokio_tungstenite::connect_async;
+use tracing::{error, info};
+use anyhow::Result;
+use url::Url;
+use futures_util::{SinkExt, StreamExt};
+use uuid::Uuid;
+use tungstenite::{http::header::SEC_WEBSOCKET_PROTOCOL, Message};
+use tokio_tungstenite::tungstenite::http::Request;
 
 pub struct WsClientConfig {
   csms_url: String,
@@ -75,8 +86,93 @@ impl WsClient {
     }
   }
 
-  pub async fn run(&mut self) {
-    info!(url = %self.config.csms_url, id = %self.config.charge_point_id, "Starting WsClient");
+  pub async fn run(&mut self) -> Result<()> {
+    info!(target: "simulator", "Connecting to CSMS at {}", self.config.csms_url);
+
+    let url = Url::parse(&self.config.csms_url)?;
+
+    let request = Request::builder()
+      .uri(url.as_str())
+      .header(SEC_WEBSOCKET_PROTOCOL, "ocpp1.6")
+      .body(()) // body must be `()`
+      .unwrap();
+
+    let (ws_stream, _) = connect_async(request).await?;
+    let (mut ws_tx, mut ws_rx) = ws_stream.split();
+
+    let boot = json!([
+      2,
+      Uuid::new_v4().to_string(),
+      "BootNotification",
+      {
+        "chargePointVendor": self.config.vendor,
+        "chargePointModel": self.config.model
+      }
+    ]);
+
+    ws_tx.send(Message::Text(boot.to_string().into())).await.unwrap();
+
+    let ws_tx_mutex = Arc::new(Mutex::new(ws_tx));
+    let ws_tx_mutex_clone = ws_tx_mutex.clone();
+
+    let outbound_task = tokio::spawn(async move {
+      loop {
+        tokio::time::sleep(Duration::from_secs(10)).await;
+
+        let start_txn = json!([
+          2,
+          Uuid::new_v4().to_string(),
+          "StartTransaction",
+          {
+            "connectorId": 1,
+            "idTag": "ABC123",
+            "timestamp": chrono::Utc::now().to_rfc3339(),
+            "meterStart": 0
+          }
+        ]);
+
+        let mut ws_tx_guard = ws_tx_mutex_clone.lock().await;
+        if let Err(e) = ws_tx_guard.send(Message::Text(start_txn.to_string().into())).await {
+          error!("Failed to send StartTransaction: {e}");
+          break;
+        }
+
+        info!("StartTransaction sent");
+      }
+    });
+
+    while let Some(msg) = ws_rx.next().await {
+      match msg {
+        Ok(Message::Text(text)) => {
+          info!("Received: {}", text);
+          if text.contains("GetConfiguration") {
+            let call_result = json!([
+              3,
+              "123456",
+              {
+                "configurationKey": []
+              }
+            ]);
+
+            info!("Responded to GetConfiguration");
+          }
+        }
+        Ok(Message::Close(_)) => {
+          info!("CSMS closed connection");
+          break;
+        }
+        Err(e) => {
+          error!("WebSocket error: {e}");
+          break;
+        }
+        _ => {}
+      }
+    }
+
+    outbound_task.abort();
+    info!("Client shutdown");
+
+    Ok(())
   }
 }
 
