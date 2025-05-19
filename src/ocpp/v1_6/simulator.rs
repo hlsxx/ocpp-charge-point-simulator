@@ -8,7 +8,7 @@ use anyhow::Result;
 use url::Url;
 use futures_util::{SinkExt, StreamExt};
 use uuid::Uuid;
-use tungstenite::{http::header::SEC_WEBSOCKET_PROTOCOL, Message};
+use tungstenite::{handshake::client::generate_key, http::header::SEC_WEBSOCKET_PROTOCOL, Message};
 use tokio_tungstenite::tungstenite::http::Request;
 
 pub struct WsClientConfig {
@@ -92,10 +92,16 @@ impl WsClient {
     let url = Url::parse(&self.config.csms_url)?;
 
     let request = Request::builder()
-      .uri(url.as_str())
+      .method("GET")
+      .uri(url.to_string())
+      .header("Host", format!("{}{}", url.host_str().unwrap(), url.port().unwrap()))
       .header(SEC_WEBSOCKET_PROTOCOL, "ocpp1.6")
-      .body(()) // body must be `()`
-      .unwrap();
+      .header("Connection", "Upgrade")
+      .header("Upgrade", "websocket")
+      .header("Sec-WebSocket-Version", "13")
+      .header("Sec-WebSocket-Key", generate_key())
+      .header("Sec-WebSocket-Protocol", "ocpp1.6")
+      .body(())?;
 
     let (ws_stream, _) = connect_async(request).await?;
     let (mut ws_tx, mut ws_rx) = ws_stream.split();
@@ -110,7 +116,9 @@ impl WsClient {
       }
     ]);
 
-    ws_tx.send(Message::Text(boot.to_string().into())).await.unwrap();
+    ws_tx.send(Message::Text(boot.to_string().into()))
+      .await
+      .unwrap();
 
     let ws_tx_mutex = Arc::new(Mutex::new(ws_tx));
     let ws_tx_mutex_clone = ws_tx_mutex.clone();
