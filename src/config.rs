@@ -1,6 +1,6 @@
-use std::env;
-use dotenvy::dotenv;
 use crate::ocpp::v1_6::simulator::WsClientConfigBuilder;
+use dotenvy::dotenv;
+use std::env;
 
 pub fn load_ws_client_config_from_env() -> WsClientConfigBuilder {
   dotenv().ok();

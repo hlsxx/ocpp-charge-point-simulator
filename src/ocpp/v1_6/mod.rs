@@ -1,2 +1,2 @@
-pub mod simulator;
 pub mod messages;
+pub mod simulator;

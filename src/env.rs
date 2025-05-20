@@ -1,10 +1,10 @@
 use anyhow::{Context, Result};
-use std::env::var;
 use dotenvy::dotenv;
+use std::env::var;
 
 pub struct Env {
   pub debug_mode: bool,
-  
+
   // WebSocket
   pub ws_host: String,
   pub ws_port: u16,
@@ -53,7 +53,7 @@ impl Env {
       database_password,
       database_host,
       database_port,
-      database_name
+      database_name,
     })
   }
 }

@@ -1,15 +1,15 @@
 use std::{sync::Arc, time::Duration};
 
+use anyhow::Result;
+use futures_util::{SinkExt, StreamExt};
 use serde_json::json;
 use tokio::sync::Mutex;
 use tokio_tungstenite::connect_async;
-use tracing::{error, info};
-use anyhow::Result;
-use url::Url;
-use futures_util::{SinkExt, StreamExt};
-use uuid::Uuid;
-use tungstenite::{handshake::client::generate_key, http::header::SEC_WEBSOCKET_PROTOCOL, Message};
 use tokio_tungstenite::tungstenite::http::Request;
+use tracing::{error, info};
+use tungstenite::{Message, handshake::client::generate_key, http::header::SEC_WEBSOCKET_PROTOCOL};
+use url::Url;
+use uuid::Uuid;
 
 pub struct WsClientConfig {
   csms_url: String,
@@ -42,11 +42,14 @@ impl WsClientConfigBuilder {
       csms_url: None,
       charge_point_id: None,
       vendor: None,
-      model: None
+      model: None,
     }
   }
 
-  pub fn csms_url(mut self, url: impl Into<String>) -> Self { self.csms_url = Some(url.into()); self }
+  pub fn csms_url(mut self, url: impl Into<String>) -> Self {
+    self.csms_url = Some(url.into());
+    self
+  }
 
   pub fn charge_point_id(mut self, id: impl Into<String>) -> Self {
     self.charge_point_id = Some(id.into());
@@ -68,7 +71,9 @@ impl WsClientConfigBuilder {
 
     WsClientConfig {
       csms_url: self.csms_url.unwrap_or(config_default.csms_url),
-      charge_point_id: self.charge_point_id.unwrap_or(config_default.charge_point_id),
+      charge_point_id: self
+        .charge_point_id
+        .unwrap_or(config_default.charge_point_id),
       vendor: self.vendor.unwrap_or(config_default.vendor),
       model: self.model.unwrap_or(config_default.model),
     }
@@ -76,14 +81,12 @@ impl WsClientConfigBuilder {
 }
 
 pub struct WsClient {
-  config: WsClientConfig
+  config: WsClientConfig,
 }
 
 impl WsClient {
   pub fn new(config: WsClientConfig) -> Self {
-    Self {
-      config
-    }
+    Self { config }
   }
 
   pub async fn run(&mut self) -> Result<()> {
@@ -94,7 +97,10 @@ impl WsClient {
     let request = Request::builder()
       .method("GET")
       .uri(url.to_string())
-      .header("Host", format!("{}{}", url.host_str().unwrap(), url.port().unwrap()))
+      .header(
+        "Host",
+        format!("{}{}", url.host_str().unwrap(), url.port().unwrap()),
+      )
       .header(SEC_WEBSOCKET_PROTOCOL, "ocpp1.6")
       .header("Connection", "Upgrade")
       .header("Upgrade", "websocket")
@@ -116,7 +122,8 @@ impl WsClient {
       }
     ]);
 
-    ws_tx.send(Message::Text(boot.to_string().into()))
+    ws_tx
+      .send(Message::Text(boot.to_string().into()))
       .await
       .unwrap();
 
@@ -140,7 +147,10 @@ impl WsClient {
         ]);
 
         let mut ws_tx_guard = ws_tx_mutex_clone.lock().await;
-        if let Err(e) = ws_tx_guard.send(Message::Text(start_txn.to_string().into())).await {
+        if let Err(e) = ws_tx_guard
+          .send(Message::Text(start_txn.to_string().into()))
+          .await
+        {
           error!("Failed to send StartTransaction: {e}");
           break;
         }
@@ -183,4 +193,3 @@ impl WsClient {
     Ok(())
   }
 }
-
