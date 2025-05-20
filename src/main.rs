@@ -16,8 +16,6 @@ async fn main() -> Result<()> {
     .with_target(true)
     .init();
 
-  tracing_subscriber::fmt().init();
-
   let ws_client_config = WsClientConfigBuilder::new()
     .build();
 
