@@ -6,6 +6,8 @@ use anyhow::Result;
 
 #[tokio::main]
 async fn main() -> Result<()> {
+  tracing_subscriber::fmt().init();
+
   let ws_client_config = WsClientConfigBuilder::new()
     .build();
 
