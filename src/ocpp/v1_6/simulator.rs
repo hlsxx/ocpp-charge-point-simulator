@@ -13,7 +13,7 @@ use uuid::Uuid;
 
 pub struct WsClientConfig {
   csms_url: String,
-  charge_point_id: String,
+  charge_point_serial_number: String,
   vendor: String,
   model: String,
 }
@@ -22,7 +22,7 @@ impl Default for WsClientConfig {
   fn default() -> Self {
     Self {
       csms_url: String::from("ws://localhost:3000"),
-      charge_point_id: String::from("ocpp-charge-point-simulator"),
+      charge_point_serial_number: String::from("ocpp-charge-point-simulator"),
       vendor: String::from("ocpp-rust"),
       model: String::from("ocpp-rust-v1"),
     }
@@ -31,7 +31,7 @@ impl Default for WsClientConfig {
 
 pub struct WsClientConfigBuilder {
   csms_url: Option<String>,
-  charge_point_id: Option<String>,
+  charge_point_serial_number: Option<String>,
   vendor: Option<String>,
   model: Option<String>,
 }
@@ -40,7 +40,7 @@ impl WsClientConfigBuilder {
   pub fn new() -> Self {
     Self {
       csms_url: None,
-      charge_point_id: None,
+      charge_point_serial_number: None,
       vendor: None,
       model: None,
     }
@@ -51,8 +51,8 @@ impl WsClientConfigBuilder {
     self
   }
 
-  pub fn charge_point_id(mut self, id: impl Into<String>) -> Self {
-    self.charge_point_id = Some(id.into());
+  pub fn charge_point_serial_number(mut self, id: impl Into<String>) -> Self {
+    self.charge_point_serial_number = Some(id.into());
     self
   }
 
@@ -71,9 +71,9 @@ impl WsClientConfigBuilder {
 
     WsClientConfig {
       csms_url: self.csms_url.unwrap_or(config_default.csms_url),
-      charge_point_id: self
-        .charge_point_id
-        .unwrap_or(config_default.charge_point_id),
+      charge_point_serial_number: self
+        .charge_point_serial_number
+        .unwrap_or(config_default.charge_point_serial_number),
       vendor: self.vendor.unwrap_or(config_default.vendor),
       model: self.model.unwrap_or(config_default.model),
     }
