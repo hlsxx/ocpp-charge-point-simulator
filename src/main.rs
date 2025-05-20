@@ -19,7 +19,12 @@ async fn main() -> Result<()> {
     .with_target(true)
     .init();
 
-  let ws_client_config = WsClientConfigBuilder::new().build();
+  let ws_client_config = WsClientConfigBuilder::new()
+    .csms_url(env.csms_url)
+    .serial_number(env.charge_point_serial_number)
+    .model(env.charge_point_model)
+    .vendor(env.charge_point_vendor)
+    .build();
 
   WsClient::new(ws_client_config).run().await?;
 

@@ -12,8 +12,8 @@ use url::Url;
 use uuid::Uuid;
 
 pub struct WsClientConfig {
-  csms_url: String,
-  charge_point_serial_number: String,
+  csms_url: Url,
+  serial_number: String,
   vendor: String,
   model: String,
 }
@@ -21,8 +21,8 @@ pub struct WsClientConfig {
 impl Default for WsClientConfig {
   fn default() -> Self {
     Self {
-      csms_url: String::from("ws://localhost:3000"),
-      charge_point_serial_number: String::from("ocpp-charge-point-simulator"),
+      csms_url: Url::parse("ws://localhost:3000").unwrap(),
+      serial_number: String::from("ocpp-charge-point-simulator"),
       vendor: String::from("ocpp-rust"),
       model: String::from("ocpp-rust-v1"),
     }
@@ -30,8 +30,8 @@ impl Default for WsClientConfig {
 }
 
 pub struct WsClientConfigBuilder {
-  csms_url: Option<String>,
-  charge_point_serial_number: Option<String>,
+  csms_url: Option<Url>,
+  serial_number: Option<String>,
   vendor: Option<String>,
   model: Option<String>,
 }
@@ -40,19 +40,21 @@ impl WsClientConfigBuilder {
   pub fn new() -> Self {
     Self {
       csms_url: None,
-      charge_point_serial_number: None,
+      serial_number: None,
       vendor: None,
       model: None,
     }
   }
 
-  pub fn csms_url(mut self, url: impl Into<String>) -> Self {
-    self.csms_url = Some(url.into());
+  pub fn csms_url(mut self, url_string: impl Into<String>) -> Self {
+    if let Ok(url) = Url::parse(&url_string.into()) {
+      self.csms_url = Some(url);
+    }
     self
   }
 
-  pub fn charge_point_serial_number(mut self, id: impl Into<String>) -> Self {
-    self.charge_point_serial_number = Some(id.into());
+  pub fn serial_number(mut self, id: impl Into<String>) -> Self {
+    self.serial_number = Some(id.into());
     self
   }
 
@@ -71,9 +73,9 @@ impl WsClientConfigBuilder {
 
     WsClientConfig {
       csms_url: self.csms_url.unwrap_or(config_default.csms_url),
-      charge_point_serial_number: self
-        .charge_point_serial_number
-        .unwrap_or(config_default.charge_point_serial_number),
+      serial_number: self
+        .serial_number
+        .unwrap_or(config_default.serial_number),
       vendor: self.vendor.unwrap_or(config_default.vendor),
       model: self.model.unwrap_or(config_default.model),
     }
@@ -92,14 +94,12 @@ impl WsClient {
   pub async fn run(&mut self) -> Result<()> {
     info!(target: "simulator", "Connecting to CSMS at {}", self.config.csms_url);
 
-    let url = Url::parse(&self.config.csms_url)?;
-
     let request = Request::builder()
       .method("GET")
-      .uri(url.to_string())
+      .uri(self.config.csms_url.to_string())
       .header(
         "Host",
-        format!("{}{}", url.host_str().unwrap(), url.port().unwrap()),
+        format!("{}{}", self.config.csms_url.host_str().unwrap(), self.config.csms_url.port().unwrap()),
       )
       .header(SEC_WEBSOCKET_PROTOCOL, "ocpp1.6")
       .header("Connection", "Upgrade")

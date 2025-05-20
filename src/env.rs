@@ -5,6 +5,8 @@ use std::env::var;
 pub struct Env {
   pub debug_mode: bool,
   pub csms_url: String,
+
+  // Charge point settings
   pub charge_point_serial_number: String,
   pub charge_point_vendor: String,
   pub charge_point_model: String
