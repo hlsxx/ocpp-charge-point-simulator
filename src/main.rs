@@ -8,7 +8,6 @@ pub mod ocpp;
 use anyhow::Result;
 use env::Env;
 use simulator::{Simulator, SimulatorConfigBuilder};
-use v1_6::simulator::{WsClient, WsClientConfigBuilder};
 use tracing::Level;
 
 #[tokio::main]

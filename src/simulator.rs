@@ -2,7 +2,7 @@ use anyhow::Result;
 use tracing::info;
 use url::Url;
 
-use crate::{ocpp::OcppVersion, v1_6::simulator::{WsClient, WsClientConfigBuilder}};
+use crate::{ocpp::OcppVersion, ws_client::{WsClient, WsClientConfigBuilder}};
 
 pub struct SimulatorConfig {
   ocpp_version: OcppVersion,
