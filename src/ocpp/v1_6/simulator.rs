@@ -11,7 +11,10 @@ use tungstenite::{Message, handshake::client::generate_key, http::header::SEC_WE
 use url::Url;
 use uuid::Uuid;
 
-use crate::{message_generator::MessageGenerator, ocpp::v1_6::{message_generator::Generator, types::OcppAction}};
+use crate::{
+  message_generator::MessageGenerator,
+  ocpp::v1_6::{message_generator::Generator, types::OcppAction},
+};
 
 pub struct WsClientConfig {
   csms_url: Url,
@@ -113,12 +116,6 @@ impl WsClient {
       .header("Sec-WebSocket-Protocol", "ocpp1.6")
       .body(())?;
 
-    let (ws_stream, _) = connect_async(request).await?;
-    let (mut ws_tx, mut ws_rx) = ws_stream.split();
-
-    let boot_notification = Generator::to_frame(OcppAction::BootNotification, Generator::boot_notification());
-    let boot_notification_string = serde_json::to_string(&boot_notification)?;
-
     // let boot = json!([
     //   2,
     //   Uuid::new_v4().to_string(),
@@ -129,8 +126,14 @@ impl WsClient {
     //   }
     // ]);
 
+    let (ws_stream, _) = connect_async(request).await?;
+    let (mut ws_tx, mut ws_rx) = ws_stream.split();
+
+    let boot_notification =
+      Generator::to_frame(OcppAction::BootNotification, Generator::boot_notification());
+
     ws_tx
-      .send(Message::Text(boot_notification_string.into()))
+      .send(Message::Text(boot_notification.to_string().into()))
       .await
       .unwrap();
 
@@ -141,21 +144,12 @@ impl WsClient {
       loop {
         tokio::time::sleep(Duration::from_secs(10)).await;
 
-        let start_txn = json!([
-          2,
-          Uuid::new_v4().to_string(),
-          "StartTransaction",
-          {
-            "connectorId": 1,
-            "idTag": "ABC123",
-            "timestamp": chrono::Utc::now().to_rfc3339(),
-            "meterStart": 0
-          }
-        ]);
+        let start_transaction =
+          Generator::to_frame(OcppAction::StartTransaction, Generator::start_transaction());
 
         let mut ws_tx_guard = ws_tx_mutex_clone.lock().await;
         if let Err(e) = ws_tx_guard
-          .send(Message::Text(start_txn.to_string().into()))
+          .send(Message::Text(start_transaction.to_string().into()))
           .await
         {
           error!("Failed to send StartTransaction: {e}");
@@ -170,17 +164,17 @@ impl WsClient {
       match msg {
         Ok(Message::Text(text)) => {
           info!("Received: {}", text);
-          if text.contains("GetConfiguration") {
-            let call_result = json!([
-              3,
-              "123456",
-              {
-                "configurationKey": []
-              }
-            ]);
-
-            info!("Responded to GetConfiguration");
-          }
+          // if text.contains("GetConfiguration") {
+          //   let call_result = json!([
+          //     3,
+          //     "123456",
+          //     {
+          //       "configurationKey": []
+          //     }
+          //   ]);
+          //
+          //   info!("Responded to GetConfiguration");
+          // }
         }
         Ok(Message::Close(_)) => {
           info!("CSMS closed connection");

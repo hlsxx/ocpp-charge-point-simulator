@@ -114,4 +114,3 @@ impl std::fmt::Display for OcppAction {
     write!(f, "{s}")
   }
 }
-
