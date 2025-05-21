@@ -10,7 +10,7 @@ tungstenite = "0.26.2"
 serde = { version = "1.0.219", features = ["derive"] }
 serde_json = "1.0.140"
 uuid = { version = "1.16.0", features = ["v4"] }
-rust-ocpp = "3.0.1"
+rust-ocpp = { version = "3.0.1", features = ["v2_0_1", "v1_6"] }
 tracing-subscriber = "0.3.19"
 tracing = "0.1.41"
 dotenvy = "0.15.7"
