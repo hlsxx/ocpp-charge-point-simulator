@@ -1,10 +1,14 @@
 pub mod env;
+pub mod simulator;
 pub mod message_generator;
+pub mod v1_6;
+pub mod ws_client;
 pub mod ocpp;
 
 use anyhow::Result;
 use env::Env;
-use ocpp::v1_6::simulator::{WsClient, WsClientConfigBuilder};
+use simulator::{Simulator, SimulatorConfigBuilder};
+use v1_6::simulator::{WsClient, WsClientConfigBuilder};
 use tracing::Level;
 
 #[tokio::main]
@@ -20,14 +24,11 @@ async fn main() -> Result<()> {
     .with_target(true)
     .init();
 
-  let ws_client_config = WsClientConfigBuilder::new()
+  let simulator_config = SimulatorConfigBuilder::new()
     .csms_url(env.csms_url)
-    .serial_number(env.charge_point_serial_number)
-    .model(env.charge_point_model)
-    .vendor(env.charge_point_vendor)
     .build();
 
-  WsClient::new(ws_client_config).run().await?;
+  Simulator::new(simulator_config).run().await?;
 
   Ok(())
 }

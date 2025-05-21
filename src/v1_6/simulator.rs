@@ -13,7 +13,7 @@ use uuid::Uuid;
 
 use crate::{
   message_generator::MessageGenerator,
-  ocpp::v1_6::{message_generator::Generator, types::OcppAction},
+  v1_6::{message_generator::Generator, types::OcppAction},
 };
 
 pub struct WsClientConfig {
