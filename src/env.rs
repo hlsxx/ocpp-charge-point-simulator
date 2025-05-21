@@ -9,7 +9,7 @@ pub struct Env {
   // Charge point settings
   pub charge_point_serial_number: String,
   pub charge_point_vendor: String,
-  pub charge_point_model: String
+  pub charge_point_model: String,
 }
 
 impl Env {
@@ -22,7 +22,8 @@ impl Env {
       .context("DEBUG_MODE must be a boolean (true/false)")?;
 
     let csms_url = var("CSMS_URL").context("Missing CSMS_URL")?;
-    let charge_point_serial_number = var("CHARGE_POINT_SERIAL_NUMBER").context("Missing CHARGE_POINT_SERIAL_NUMBER")?;
+    let charge_point_serial_number =
+      var("CHARGE_POINT_SERIAL_NUMBER").context("Missing CHARGE_POINT_SERIAL_NUMBER")?;
     let charge_point_vendor = var("CHARGE_POINT_VENDOR").context("Missing CHARGE_POINT_VENDOR")?;
     let charge_point_model = var("CHARGE_POINT_MODEL").context("Missing CHARGE_POINT_MODEL")?;
 
@@ -31,7 +32,7 @@ impl Env {
       csms_url,
       charge_point_serial_number,
       charge_point_vendor,
-      charge_point_model
+      charge_point_model,
     })
   }
 }

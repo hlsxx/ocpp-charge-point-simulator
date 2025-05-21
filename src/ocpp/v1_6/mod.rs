@@ -1,2 +1,2 @@
-pub mod messages;
+pub mod message_generator;
 pub mod simulator;

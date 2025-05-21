@@ -1,4 +1,5 @@
 pub mod env;
+pub mod message_generator;
 pub mod ocpp;
 
 use anyhow::Result;

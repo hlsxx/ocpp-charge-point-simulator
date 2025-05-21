@@ -73,9 +73,7 @@ impl WsClientConfigBuilder {
 
     WsClientConfig {
       csms_url: self.csms_url.unwrap_or(config_default.csms_url),
-      serial_number: self
-        .serial_number
-        .unwrap_or(config_default.serial_number),
+      serial_number: self.serial_number.unwrap_or(config_default.serial_number),
       vendor: self.vendor.unwrap_or(config_default.vendor),
       model: self.model.unwrap_or(config_default.model),
     }
@@ -99,7 +97,11 @@ impl WsClient {
       .uri(self.config.csms_url.to_string())
       .header(
         "Host",
-        format!("{}{}", self.config.csms_url.host_str().unwrap(), self.config.csms_url.port().unwrap()),
+        format!(
+          "{}{}",
+          self.config.csms_url.host_str().unwrap(),
+          self.config.csms_url.port().unwrap()
+        ),
       )
       .header(SEC_WEBSOCKET_PROTOCOL, "ocpp1.6")
       .header("Connection", "Upgrade")
