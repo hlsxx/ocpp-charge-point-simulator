@@ -11,12 +11,19 @@ use rust_ocpp::v1_6::types::ChargePointErrorCode;
 use rust_ocpp::v1_6::types::ChargePointStatus;
 use rust_ocpp::v1_6::types::DiagnosticsStatus;
 use rust_ocpp::v1_6::types::FirmwareStatus;
+use serde::Serialize;
+use serde_json::{json, Value};
 
 use crate::message_generator::MessageGenerator;
+use uuid::Uuid;
 
-struct Generator {}
+use super::types::OcppAction;
+
+pub struct Generator {}
 
 impl MessageGenerator for Generator {
+  type OcppAction = OcppAction;
+
   type BootNotification = BootNotificationRequest;
   type Heartbeat = HeartbeatRequest;
   type Authorize = AuthorizeRequest;
@@ -101,5 +108,14 @@ impl MessageGenerator for Generator {
       vendor_string: "TEST".into(),
       ..Default::default()
     }
+  }
+
+  fn to_frame<T: Serialize>(action: Self::OcppAction, payload: T) -> Value {
+    json!([
+      2,
+      Uuid::new_v4().to_string(),
+      action,
+      payload
+    ])
   }
 }

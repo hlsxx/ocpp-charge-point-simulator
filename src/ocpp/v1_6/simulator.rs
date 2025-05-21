@@ -11,6 +11,8 @@ use tungstenite::{Message, handshake::client::generate_key, http::header::SEC_WE
 use url::Url;
 use uuid::Uuid;
 
+use crate::{message_generator::MessageGenerator, ocpp::v1_6::{message_generator::Generator, types::OcppAction}};
+
 pub struct WsClientConfig {
   csms_url: Url,
   serial_number: String,
@@ -114,18 +116,21 @@ impl WsClient {
     let (ws_stream, _) = connect_async(request).await?;
     let (mut ws_tx, mut ws_rx) = ws_stream.split();
 
-    let boot = json!([
-      2,
-      Uuid::new_v4().to_string(),
-      "BootNotification",
-      {
-        "chargePointVendor": self.config.vendor,
-        "chargePointModel": self.config.model
-      }
-    ]);
+    let boot_notification = Generator::to_frame(OcppAction::BootNotification, Generator::boot_notification());
+    let boot_notification_string = serde_json::to_string(&boot_notification)?;
+
+    // let boot = json!([
+    //   2,
+    //   Uuid::new_v4().to_string(),
+    //   "BootNotification",
+    //   {
+    //     "chargePointVendor": self.config.vendor,
+    //     "chargePointModel": self.config.model
+    //   }
+    // ]);
 
     ws_tx
-      .send(Message::Text(boot.to_string().into()))
+      .send(Message::Text(boot_notification_string.into()))
       .await
       .unwrap();
 
