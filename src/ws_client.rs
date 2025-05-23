@@ -94,11 +94,11 @@ impl WsClientConfigBuilder {
 }
 
 pub struct WsClient {
-  config: WsClientConfig,
+  config: Arc<WsClientConfig>,
 }
 
 impl WsClient {
-  pub fn new(config: WsClientConfig) -> Self {
+  pub fn new(config: Arc<WsClientConfig>) -> Self {
     Self { config }
   }
 
