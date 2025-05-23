@@ -27,7 +27,8 @@ async fn main() -> Result<()> {
     .csms_url(env.csms_url)
     .build();
 
-  Simulator::new(simulator_config).run().await?;
+  Simulator::new(simulator_config)
+    .run().await?;
 
   Ok(())
 }

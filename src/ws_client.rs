@@ -6,10 +6,11 @@ use serde_json::json;
 use tokio::sync::Mutex;
 use tokio_tungstenite::connect_async;
 use tokio_tungstenite::tungstenite::http::Request;
-use tracing::{error, info};
+use tracing::{debug, error, info};
 use tungstenite::{Message, handshake::client::generate_key, http::header::SEC_WEBSOCKET_PROTOCOL};
 use url::Url;
 use uuid::Uuid;
+use colored::Colorize;
 
 use crate::{
   message_generator::MessageGenerator,
@@ -95,7 +96,7 @@ impl WsClient {
   }
 
   pub async fn run(&mut self) -> Result<()> {
-    info!(target: "simulator", "Connecting to CSMS at {}", self.config.csms_url);
+    info!(target: "simulator", "connecting to CSMS at {}", self.config.csms_url.to_string().cyan());
 
     let request = Request::builder()
       .method("GET")
@@ -148,15 +149,17 @@ impl WsClient {
           Generator::to_frame(OcppAction::StartTransaction, Generator::start_transaction());
 
         let mut ws_tx_guard = ws_tx_mutex_clone.lock().await;
-        if let Err(e) = ws_tx_guard
-          .send(Message::Text(start_transaction.to_string().into()))
-          .await
-        {
-          error!("Failed to send StartTransaction: {e}");
-          break;
-        }
 
-        info!("StartTransaction sent");
+        match ws_tx_guard.send(Message::Text(start_transaction.to_string().into())).await {
+          Ok(_) => {
+            info!("StartTransaction sent");
+            debug!(?start_transaction);
+          },
+          Err(err) => {
+            error!("Failed to send StartTransaction: {err}");
+            break;
+          }
+        }
       }
     });
 

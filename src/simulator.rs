@@ -3,6 +3,7 @@ use tracing::info;
 use url::Url;
 
 use crate::{ocpp::OcppVersion, ws_client::{WsClient, WsClientConfigBuilder}};
+use colored::Colorize;
 
 pub struct SimulatorConfig {
   ocpp_version: OcppVersion,
@@ -58,13 +59,15 @@ pub struct Simulator {
 
 impl Simulator {
   pub fn new(config: SimulatorConfig) -> Self {
+    info!("{}", format!("ocpp-charge-point-simulator v{}", env!("CARGO_PKG_VERSION")).cyan());
+
     Self {
       config
     }
   }
 
   pub async fn run(&self) -> Result<()> {
-    info!("Simulator running...");
+    info!("simulator running...");
 
     match self.config.ocpp_version {
       OcppVersion::V1_6 => {
