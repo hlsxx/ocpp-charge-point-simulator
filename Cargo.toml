@@ -1,6 +1,6 @@
 [package]
 name = "ocpp-charge-point-simulator"
-version = "0.1.0"
+version = "0.0.1"
 edition = "2024"
 
 [dependencies]
@@ -18,3 +18,4 @@ url = "2.5.4"
 anyhow = "1.0.98"
 futures-util = "0.3.31"
 chrono = "0.4.41"
+colored = "3.0.0"
