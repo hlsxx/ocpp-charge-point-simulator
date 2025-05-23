@@ -1,9 +1,9 @@
 pub mod env;
-pub mod simulator;
 pub mod message_generator;
+pub mod ocpp;
+pub mod simulator;
 pub mod v1_6;
 pub mod ws_client;
-pub mod ocpp;
 
 use anyhow::Result;
 use env::Env;
@@ -23,12 +23,9 @@ async fn main() -> Result<()> {
     .with_target(true)
     .init();
 
-  let simulator_config = SimulatorConfigBuilder::new()
-    .csms_url(env.csms_url)
-    .build();
+  let simulator_config = SimulatorConfigBuilder::new().csms_url(env.csms_url).build();
 
-  Simulator::new(simulator_config)
-    .run().await?;
+  Simulator::new(simulator_config).run().await?;
 
   Ok(())
 }

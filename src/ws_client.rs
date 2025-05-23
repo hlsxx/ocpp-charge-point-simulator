@@ -1,19 +1,26 @@
 use std::{sync::Arc, time::Duration};
 
 use anyhow::Result;
+use colored::Colorize;
 use futures_util::{SinkExt, StreamExt};
 use serde_json::json;
 use tokio::sync::Mutex;
 use tokio_tungstenite::connect_async;
 use tokio_tungstenite::tungstenite::http::Request;
 use tracing::{debug, error, info};
-use tungstenite::{Message, handshake::client::generate_key, http::header::SEC_WEBSOCKET_PROTOCOL};
+use tungstenite::{
+  Message,
+  handshake::client::generate_key,
+  http::header::{
+    CONNECTION, HOST, SEC_WEBSOCKET_KEY, SEC_WEBSOCKET_PROTOCOL, SEC_WEBSOCKET_VERSION, UPGRADE,
+  },
+};
 use url::Url;
 use uuid::Uuid;
-use colored::Colorize;
 
 use crate::{
   message_generator::MessageGenerator,
+  ocpp::OcppVersion,
   v1_6::{message_generator::Generator, types::OcppAction},
 };
 
@@ -102,7 +109,7 @@ impl WsClient {
       .method("GET")
       .uri(self.config.csms_url.to_string())
       .header(
-        "Host",
+        HOST,
         format!(
           "{}{}",
           self.config.csms_url.host_str().unwrap(),
@@ -110,11 +117,11 @@ impl WsClient {
         ),
       )
       .header(SEC_WEBSOCKET_PROTOCOL, "ocpp1.6")
-      .header("Connection", "Upgrade")
-      .header("Upgrade", "websocket")
-      .header("Sec-WebSocket-Version", "13")
-      .header("Sec-WebSocket-Key", generate_key())
-      .header("Sec-WebSocket-Protocol", "ocpp1.6")
+      .header(CONNECTION, "Upgrade")
+      .header(UPGRADE, "Websocket")
+      .header(SEC_WEBSOCKET_VERSION, "13")
+      .header(SEC_WEBSOCKET_KEY, generate_key())
+      .header(SEC_WEBSOCKET_PROTOCOL, OcppVersion::V1_6.to_string())
       .body(())?;
 
     // let boot = json!([
@@ -150,11 +157,14 @@ impl WsClient {
 
         let mut ws_tx_guard = ws_tx_mutex_clone.lock().await;
 
-        match ws_tx_guard.send(Message::Text(start_transaction.to_string().into())).await {
+        match ws_tx_guard
+          .send(Message::Text(start_transaction.to_string().into()))
+          .await
+        {
           Ok(_) => {
             info!("StartTransaction sent");
             debug!(?start_transaction);
-          },
+          }
           Err(err) => {
             error!("Failed to send StartTransaction: {err}");
             break;

@@ -2,7 +2,10 @@ use anyhow::Result;
 use tracing::info;
 use url::Url;
 
-use crate::{ocpp::OcppVersion, ws_client::{WsClient, WsClientConfigBuilder}};
+use crate::{
+  ocpp::OcppVersion,
+  ws_client::{WsClient, WsClientConfigBuilder},
+};
 use colored::Colorize;
 
 pub struct SimulatorConfig {
@@ -54,16 +57,17 @@ impl SimulatorConfigBuilder {
 }
 
 pub struct Simulator {
-  config: SimulatorConfig
+  config: SimulatorConfig,
 }
 
 impl Simulator {
   pub fn new(config: SimulatorConfig) -> Self {
-    info!("{}", format!("ocpp-charge-point-simulator v{}", env!("CARGO_PKG_VERSION")).cyan());
+    info!(
+      "{}",
+      format!("ocpp-charge-point-simulator v{}", env!("CARGO_PKG_VERSION")).cyan()
+    );
 
-    Self {
-      config
-    }
+    Self { config }
   }
 
   pub async fn run(&self) -> Result<()> {
@@ -79,10 +83,10 @@ impl Simulator {
           .build();
 
         WsClient::new(ws_client_config).run().await?;
-      },
+      }
       OcppVersion::V2_1 => {
         todo!()
-      },
+      }
       OcppVersion::V2_0_1 => {
         todo!()
       }
