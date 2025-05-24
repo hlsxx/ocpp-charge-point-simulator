@@ -92,14 +92,14 @@ impl Simulator {
 
     match self.config.ocpp_version {
       OcppVersion::V1_6 => {
-        let ws_client_config = Arc::new(WsClientConfigBuilder::new()
-          .csms_url(self.config.csms_url.clone())
-          .serial_number("TEST1-2-3")
-          .model("TEST")
-          .vendor("TEST")
-          .build());
-
         for i in 0..self.config.clients_num {
+          let ws_client_config = Arc::new(WsClientConfigBuilder::new()
+            .csms_url(self.config.csms_url.clone())
+            .serial_number(format!("a-b-c-d-e-{}", i))
+            //.model("TEST")
+            //.vendor("TEST")
+            .build());
+
           let ws_client_config = ws_client_config.clone();
 
           let handle = tokio::spawn(async move {

@@ -1,7 +1,7 @@
 use serde::Serialize;
 use serde_json::Value;
 
-pub trait MessageGenerator {
+pub trait MessageGeneratorTrait {
   type OcppAction;
 
   type BootNotification;
@@ -15,16 +15,16 @@ pub trait MessageGenerator {
   type FirmwareStatusNotification;
   type DataTransfer;
 
-  fn boot_notification() -> Self::BootNotification;
-  fn heartbeat() -> Self::Heartbeat;
-  fn authorize() -> Self::Authorize;
-  fn start_transaction() -> Self::StartTransaction;
-  fn stop_transaction() -> Self::StopTransaction;
-  fn status_notification() -> Self::StatusNotification;
-  fn meter_values() -> Self::MeterValues;
-  fn diagnostics_status_notification() -> Self::DiagnosticsStatusNotification;
-  fn firmware_status_notification() -> Self::FirmwareStatusNotification;
-  fn data_transfer() -> Self::DataTransfer;
+  fn boot_notification(&self) -> Self::BootNotification;
+  fn heartbeat(&self) -> Self::Heartbeat;
+  fn authorize(&self) -> Self::Authorize;
+  fn start_transaction(&self) -> Self::StartTransaction;
+  fn stop_transaction(&self) -> Self::StopTransaction;
+  fn status_notification(&self) -> Self::StatusNotification;
+  fn meter_values(&self) -> Self::MeterValues;
+  fn diagnostics_status_notification(&self) -> Self::DiagnosticsStatusNotification;
+  fn firmware_status_notification(&self) -> Self::FirmwareStatusNotification;
+  fn data_transfer(&self) -> Self::DataTransfer;
 
   fn to_frame<T: Serialize>(action: Self::OcppAction, payload: T) -> Value;
 }
