@@ -709,6 +709,7 @@ dependencies = [
  "colored",
  "dotenvy",
  "futures-util",
+ "rand 0.9.1",
  "rust-ocpp",
  "serde",
  "serde_json",
