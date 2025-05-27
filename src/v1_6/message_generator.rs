@@ -90,7 +90,7 @@ impl MessageGeneratorConfigBuilder {
 
 pub struct MessageGenerator {
   config: MessageGeneratorConfig,
-  id_counter: AtomicUsize
+  id_counter: AtomicUsize,
 }
 
 impl MessageGeneratorTrait for MessageGenerator {
@@ -194,6 +194,9 @@ impl MessageGeneratorTrait for MessageGenerator {
 
 impl MessageGenerator {
   pub fn new(config: MessageGeneratorConfig) -> Self {
-    Self { config, id_counter: AtomicUsize::new(1) }
+    Self {
+      config,
+      id_counter: AtomicUsize::new(1),
+    }
   }
 }

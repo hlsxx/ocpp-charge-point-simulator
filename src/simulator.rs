@@ -63,7 +63,7 @@ impl Simulator {
     (0..cfg.count)
       .map(|i| ChargePointConfig {
         id: format!("{}{:06}", cfg.prefix, i),
-        boot_delay_ms: rand::random_range(cfg.boot_delay_range[0]..=cfg.boot_delay_range[1]),
+        boot_delay_interval: rand::random_range(cfg.boot_delay_range[0]..=cfg.boot_delay_range[1]),
         heartbeat_interval: rand::random_range(
           cfg.heartbeat_interval_range[0]..=cfg.heartbeat_interval_range[1],
         ),

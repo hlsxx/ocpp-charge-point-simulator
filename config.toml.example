@@ -6,7 +6,7 @@ ocpp_version = "ocpp1.6"
 [implicit_charge_points]
 count = 5
 prefix = "CP"
-boot_delay_range = [100, 1000]
+boot_delay_range = [1, 60]
 heartbeat_interval_range = [30, 90]
 status_interval_range = [10, 60]
 start_tx_after_range = [5, 15]
@@ -15,7 +15,7 @@ stop_tx_after_range = [20, 60]
 # Explicitly defined charge points
 [[charge_points]]
 id = "CP100001"
-boot_delay_ms = 500
+boot_delay_interval = 0
 heartbeat_interval = 60
 status_interval = 10
 start_tx_after = 5
@@ -23,7 +23,7 @@ stop_tx_after = 20
 
 [[charge_points]]
 id = "CP100002"
-boot_delay_ms = 1000
+boot_delay_interval = 10
 heartbeat_interval = 30
 status_interval = 15
 start_tx_after = 10

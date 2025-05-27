@@ -1,13 +1,17 @@
-use std::{sync::Arc, time::Duration};
-
 use crate::{
   config::{ChargePointConfig, GeneralConfig},
   message_generator::MessageGeneratorTrait,
 };
+
 use anyhow::Result;
 use colored::Colorize;
 use futures_util::{SinkExt, StreamExt};
-use tokio::{sync::Mutex, time::interval};
+use std::sync::Arc;
+use tokio::{
+  select,
+  sync::Mutex,
+  time::{Duration, interval, sleep},
+};
 use tokio_tungstenite::connect_async;
 use tokio_tungstenite::tungstenite::http::Request;
 use tracing::{debug, error, info};
@@ -19,7 +23,6 @@ use tungstenite::{
   },
 };
 use url::Url;
-use uuid::Uuid;
 
 use crate::{
   //message_generator::MessageGeneratorTrait,
@@ -154,11 +157,19 @@ impl WsClient {
     let message_generator = MessageGenerator::new(MessageGeneratorConfig::default());
 
     let mut heartbeat_interval = interval(Duration::from_secs(
-      self.charge_point_config.heartbeat_interval
+      self.charge_point_config.heartbeat_interval,
     ));
 
     let mut status_interval = interval(Duration::from_secs(
-      self.charge_point_config.status_interval
+      self.charge_point_config.status_interval,
+    ));
+
+    let mut start_tx_interval = interval(Duration::from_secs(
+      self.charge_point_config.start_tx_after,
+    ));
+
+    let mut stop_tx_interval = interval(Duration::from_secs(
+      self.charge_point_config.stop_tx_after,
     ));
 
     let boot_notification = MessageGenerator::to_frame(
@@ -167,71 +178,110 @@ impl WsClient {
       message_generator.boot_notification(),
     );
 
+    let _ = sleep(Duration::from_millis(self.charge_point_config.boot_delay_interval)).await;
+
     ws_tx
       .send(Message::Text(boot_notification.to_string().into()))
       .await
       .unwrap();
 
-    let ws_tx_mutex = Arc::new(Mutex::new(ws_tx));
-    let ws_tx_mutex_clone = ws_tx_mutex.clone();
+    loop {
+      select! {
+        _ = start_tx_interval.tick() => {
+          let start_transaction = MessageGenerator::to_frame(
+            &message_generator,
+            OcppAction::StartTransaction,
+            message_generator.start_transaction(),
+          );
 
-    let outbound_task = tokio::spawn(async move {
-      loop {
-        tokio::time::sleep(Duration::from_secs(10)).await;
+          let _ = ws_tx.send(Message::Text(start_transaction.to_string().into())).await;
+        },
+        _ = stop_tx_interval.tick() => {
+          let stop_transaction = MessageGenerator::to_frame(
+            &message_generator,
+            OcppAction::StopTransaction,
+            message_generator.stop_transaction(),
+          );
 
-        let start_transaction = MessageGenerator::to_frame(
-          &message_generator,
-          OcppAction::StartTransaction,
-          message_generator.start_transaction(),
-        );
+          let _ = ws_tx.send(Message::Text(stop_transaction.to_string().into())).await;
+        },
+        _ = heartbeat_interval.tick() => {
+          let heartbeat_notification = MessageGenerator::to_frame(
+            &message_generator,
+            OcppAction::Heartbeat,
+            message_generator.heartbeat(),
+          );
 
-        let mut ws_tx_guard = ws_tx_mutex_clone.lock().await;
+          let _ = ws_tx.send(Message::Text(heartbeat_notification.to_string().into())).await;
+        },
+        _ = status_interval.tick() => {
+          let status_notification = MessageGenerator::to_frame(
+            &message_generator,
+            OcppAction::StatusNotification,
+            message_generator.status_notification(),
+          );
 
-        match ws_tx_guard
-          .send(Message::Text(start_transaction.to_string().into()))
-          .await
-        {
-          Ok(_) => {
-            info!("StartTransaction sent");
-            debug!(?start_transaction);
+          let _ = ws_tx.send(Message::Text(status_notification.to_string().into())).await;
+        },
+        Some(msg) = ws_rx.next() => {
+          match msg {
+            Ok(Message::Text(text)) => {
+              info!("Received: {}", text);
+              // if text.contains("GetConfiguration") {
+              //   let call_result = json!([
+              //     3,
+              //     "123456",
+              //     {
+              //       "configurationKey": []
+              //     }
+              //   ]);
+              //
+              //   info!("Responded to GetConfiguration");
+              // }
+            }
+            Ok(Message::Close(_)) => {
+              info!("CSMS closed connection");
+              break;
+            }
+            Err(e) => {
+              error!("WebSocket error: {e}");
+              break;
+            }
+            _ => {}
           }
-          Err(err) => {
-            error!("Failed to send StartTransaction: {err}");
-            break;
-          }
         }
-      }
-    });
-
-    while let Some(msg) = ws_rx.next().await {
-      match msg {
-        Ok(Message::Text(text)) => {
-          info!("Received: {}", text);
-          // if text.contains("GetConfiguration") {
-          //   let call_result = json!([
-          //     3,
-          //     "123456",
-          //     {
-          //       "configurationKey": []
-          //     }
-          //   ]);
-          //
-          //   info!("Responded to GetConfiguration");
-          // }
-        }
-        Ok(Message::Close(_)) => {
-          info!("CSMS closed connection");
-          break;
-        }
-        Err(e) => {
-          error!("WebSocket error: {e}");
-          break;
-        }
-        _ => {}
       }
     }
 
-    outbound_task.abort();
+    // let outbound_task = tokio::spawn(async move {
+    //   loop {
+    //     tokio::time::sleep(Duration::from_secs(10)).await;
+    //
+    //     let start_transaction = MessageGenerator::to_frame(
+    //       &message_generator,
+    //       OcppAction::StartTransaction,
+    //       message_generator.start_transaction(),
+    //     );
+    //
+    //     let mut ws_tx_guard = ws_tx_mutex_clone.lock().await;
+    //
+    //     match ws_tx_guard
+    //       .send(Message::Text(start_transaction.to_string().into()))
+    //       .await
+    //     {
+    //       Ok(_) => {
+    //         info!("StartTransaction sent");
+    //         debug!(?start_transaction);
+    //       }
+    //       Err(err) => {
+    //         error!("Failed to send StartTransaction: {err}");
+    //         break;
+    //       }
+    //     }
+    //   }
+    // });
+
+    // outbound_task.abort();
     info!("Client shutdown");
 
     Ok(())
