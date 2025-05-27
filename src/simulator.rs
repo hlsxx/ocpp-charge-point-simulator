@@ -4,10 +4,12 @@ use anyhow::Result;
 use futures_util::future::join_all;
 use tokio::task::JoinHandle;
 use tracing::info;
-use url::Url;
+//use url::Url;
 
 use crate::{
-  config::{ChargePointConfig, Config, ImplicitChargePointConfig}, ocpp::OcppVersion, ws_client::{WsClient, WsClientConfigBuilder}
+  config::{ChargePointConfig, Config, ImplicitChargePointConfig},
+  ocpp::OcppVersion,
+  ws_client::{WsClient, WsClientConfigBuilder},
 };
 use colored::Colorize;
 
@@ -45,7 +47,7 @@ impl Simulator {
         let mut client = WsClient::new(general_config_clone, charge_point_config);
 
         if let Err(e) = client.run().await {
-          eprintln!("Client failed: {:?}",  e);
+          eprintln!("Client failed: {:?}", e);
         }
       });
 
@@ -62,9 +64,15 @@ impl Simulator {
       .map(|i| ChargePointConfig {
         id: format!("{}{:06}", cfg.prefix, i),
         boot_delay_ms: rand::random_range(cfg.boot_delay_range[0]..=cfg.boot_delay_range[1]),
-        heartbeat_interval: rand::random_range(cfg.heartbeat_interval_range[0]..=cfg.heartbeat_interval_range[1]),
-        status_interval: rand::random_range(cfg.status_interval_range[0]..=cfg.status_interval_range[1]),
-        start_tx_after: rand::random_range(cfg.start_tx_after_range[0]..=cfg.start_tx_after_range[1]),
+        heartbeat_interval: rand::random_range(
+          cfg.heartbeat_interval_range[0]..=cfg.heartbeat_interval_range[1],
+        ),
+        status_interval: rand::random_range(
+          cfg.status_interval_range[0]..=cfg.status_interval_range[1],
+        ),
+        start_tx_after: rand::random_range(
+          cfg.start_tx_after_range[0]..=cfg.start_tx_after_range[1],
+        ),
         stop_tx_after: rand::random_range(cfg.stop_tx_after_range[0]..=cfg.stop_tx_after_range[1]),
       })
       .collect()

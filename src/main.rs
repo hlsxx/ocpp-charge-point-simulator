@@ -1,10 +1,10 @@
+pub mod config;
 pub mod env;
 pub mod message_generator;
 pub mod ocpp;
 pub mod simulator;
 pub mod v1_6;
 pub mod ws_client;
-pub mod config;
 
 use anyhow::Result;
 use config::Config;

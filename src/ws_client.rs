@@ -1,5 +1,9 @@
 use std::{sync::Arc, time::Duration};
 
+use crate::{
+  config::{ChargePointConfig, GeneralConfig},
+  message_generator::MessageGeneratorTrait,
+};
 use anyhow::Result;
 use colored::Colorize;
 use futures_util::{SinkExt, StreamExt};
@@ -16,12 +20,14 @@ use tungstenite::{
 };
 use url::Url;
 use uuid::Uuid;
-use crate::{config::{ChargePointConfig, GeneralConfig}, message_generator::MessageGeneratorTrait};
 
 use crate::{
   //message_generator::MessageGeneratorTrait,
   ocpp::OcppVersion,
-  v1_6::{message_generator::{MessageGenerator, MessageGeneratorConfig}, types::OcppAction},
+  v1_6::{
+    message_generator::{MessageGenerator, MessageGeneratorConfig},
+    types::OcppAction,
+  },
 };
 
 pub struct WsClientConfig {
@@ -95,7 +101,9 @@ impl WsClientConfigBuilder {
 
     WsClientConfig {
       csms_url: self.csms_url.unwrap_or(config_default.csms_url),
-      charge_point_id: self.charge_point_id.unwrap_or(config_default.charge_point_id),
+      charge_point_id: self
+        .charge_point_id
+        .unwrap_or(config_default.charge_point_id),
       serial_number: self.serial_number.unwrap_or(config_default.serial_number),
       vendor: self.vendor.unwrap_or(config_default.vendor),
       model: self.model.unwrap_or(config_default.model),
@@ -105,26 +113,33 @@ impl WsClientConfigBuilder {
 
 pub struct WsClient {
   general_config: Arc<GeneralConfig>,
-  charge_point_config: ChargePointConfig
+  charge_point_config: ChargePointConfig,
 }
 
 impl WsClient {
   pub fn new(general_config: Arc<GeneralConfig>, charge_point_config: ChargePointConfig) -> Self {
-    Self { general_config, charge_point_config }
+    Self {
+      general_config,
+      charge_point_config,
+    }
   }
 
   pub async fn run(&mut self) -> Result<()> {
-    let connection_url = format!("{}/{}", self.general_config.server_url.to_string(), self.charge_point_config.id);
+    let connection_url = format!(
+      "{}/{}",
+      self.general_config.server_url.to_string(),
+      self.charge_point_config.id
+    );
     info!(target: "simulator", "connecting to CSMS at {}", connection_url.cyan());
 
     let request = Request::builder()
       .method("GET")
       .uri(&connection_url)
+      .header(HOST, connection_url)
       .header(
-        HOST,
-        connection_url
+        SEC_WEBSOCKET_PROTOCOL,
+        &self.general_config.ocpp_version.to_string(),
       )
-      .header(SEC_WEBSOCKET_PROTOCOL, &self.general_config.ocpp_version.to_string())
       .header(CONNECTION, "Upgrade")
       .header(UPGRADE, "Websocket")
       .header(SEC_WEBSOCKET_VERSION, "13")
@@ -137,8 +152,10 @@ impl WsClient {
 
     let message_generator = MessageGenerator::new(MessageGeneratorConfig::default());
 
-    let boot_notification =
-      MessageGenerator::to_frame(OcppAction::BootNotification, message_generator.boot_notification());
+    let boot_notification = MessageGenerator::to_frame(
+      OcppAction::BootNotification,
+      message_generator.boot_notification(),
+    );
 
     ws_tx
       .send(Message::Text(boot_notification.to_string().into()))
@@ -152,8 +169,10 @@ impl WsClient {
       loop {
         tokio::time::sleep(Duration::from_secs(10)).await;
 
-        let start_transaction =
-          MessageGenerator::to_frame(OcppAction::StartTransaction, message_generator.start_transaction());
+        let start_transaction = MessageGenerator::to_frame(
+          OcppAction::StartTransaction,
+          message_generator.start_transaction(),
+        );
 
         let mut ws_tx_guard = ws_tx_mutex_clone.lock().await;
 

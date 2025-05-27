@@ -23,7 +23,7 @@ pub struct MessageGeneratorConfig {
   serial_number: String,
   vendor: String,
   model: String,
-  id_tag: String
+  id_tag: String,
 }
 
 impl Default for MessageGeneratorConfig {
@@ -50,7 +50,7 @@ impl MessageGeneratorConfigBuilder {
       serial_number: None,
       vendor: None,
       model: None,
-      id_tag: None
+      id_tag: None,
     }
   }
 
@@ -86,9 +86,8 @@ impl MessageGeneratorConfigBuilder {
   }
 }
 
-
 pub struct MessageGenerator {
-  config: MessageGeneratorConfig
+  config: MessageGeneratorConfig,
 }
 
 impl MessageGeneratorTrait for MessageGenerator {
@@ -187,8 +186,6 @@ impl MessageGeneratorTrait for MessageGenerator {
 
 impl MessageGenerator {
   pub fn new(config: MessageGeneratorConfig) -> Self {
-    Self {
-      config
-    }
+    Self { config }
   }
 }

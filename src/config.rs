@@ -1,7 +1,7 @@
 use std::fs;
 
-use serde::Deserialize;
 use anyhow::Result;
+use serde::Deserialize;
 
 use crate::ocpp::OcppVersion;
 
@@ -20,7 +20,7 @@ pub struct ImplicitChargePointConfig {
 pub struct GeneralConfig {
   pub debug_mode: bool,
   pub server_url: String,
-  pub ocpp_version: OcppVersion
+  pub ocpp_version: OcppVersion,
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -39,7 +39,6 @@ pub struct Config {
   pub charge_points: Vec<ChargePointConfig>,
   pub implicit_charge_points: Option<ImplicitChargePointConfig>,
 }
-
 
 impl Config {
   pub fn try_load() -> Result<Self> {

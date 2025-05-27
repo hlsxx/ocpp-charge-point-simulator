@@ -11,7 +11,7 @@ pub struct Env {
   pub charge_point_vendor: String,
   pub charge_point_model: String,
   pub charge_point_clients_num: u32,
-  pub charge_point_ocpp_version: String
+  pub charge_point_ocpp_version: String,
 }
 
 impl Env {
@@ -33,7 +33,8 @@ impl Env {
       .context("Missing CHARGE_POINT_CLIENTS_NUM")?
       .parse::<u32>()?;
 
-    let charge_point_ocpp_version = var("CHARGE_POINT_OCPP_VERSION").context("Missing CHARGE_POINT_OCPP_VERSION")?;
+    let charge_point_ocpp_version =
+      var("CHARGE_POINT_OCPP_VERSION").context("Missing CHARGE_POINT_OCPP_VERSION")?;
 
     Ok(Self {
       debug_mode,
@@ -42,7 +43,7 @@ impl Env {
       charge_point_vendor,
       charge_point_model,
       charge_point_clients_num,
-      charge_point_ocpp_version
+      charge_point_ocpp_version,
     })
   }
 }
