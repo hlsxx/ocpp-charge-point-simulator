@@ -1,3 +1,5 @@
+use std::sync::atomic::{AtomicUsize, Ordering};
+
 use rust_ocpp::v1_6::messages::{
   authorize::AuthorizeRequest, boot_notification::BootNotificationRequest,
   data_transfer::DataTransferRequest,
@@ -88,6 +90,7 @@ impl MessageGeneratorConfigBuilder {
 
 pub struct MessageGenerator {
   config: MessageGeneratorConfig,
+  id_counter: AtomicUsize
 }
 
 impl MessageGeneratorTrait for MessageGenerator {
@@ -179,13 +182,18 @@ impl MessageGeneratorTrait for MessageGenerator {
     }
   }
 
-  fn to_frame<T: Serialize>(action: Self::OcppAction, payload: T) -> Value {
-    json!([2, Uuid::new_v4().to_string(), action, payload])
+  fn next_id(&self) -> String {
+    self.id_counter.fetch_add(1, Ordering::Relaxed).to_string()
+  }
+
+  fn to_frame<T: Serialize>(&self, action: Self::OcppAction, payload: T) -> Value {
+    let id = self.next_id();
+    json!([2, id, action, payload])
   }
 }
 
 impl MessageGenerator {
   pub fn new(config: MessageGeneratorConfig) -> Self {
-    Self { config }
+    Self { config, id_counter: AtomicUsize::new(1) }
   }
 }

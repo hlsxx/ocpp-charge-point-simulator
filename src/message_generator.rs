@@ -26,5 +26,6 @@ pub trait MessageGeneratorTrait {
   fn firmware_status_notification(&self) -> Self::FirmwareStatusNotification;
   fn data_transfer(&self) -> Self::DataTransfer;
 
-  fn to_frame<T: Serialize>(action: Self::OcppAction, payload: T) -> Value;
+  fn next_id(&self) -> String;
+  fn to_frame<T: Serialize>(&self, action: Self::OcppAction, payload: T) -> Value;
 }

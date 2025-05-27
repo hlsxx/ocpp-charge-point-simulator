@@ -7,7 +7,7 @@ use crate::{
 use anyhow::Result;
 use colored::Colorize;
 use futures_util::{SinkExt, StreamExt};
-use tokio::sync::Mutex;
+use tokio::{sync::Mutex, time::interval};
 use tokio_tungstenite::connect_async;
 use tokio_tungstenite::tungstenite::http::Request;
 use tracing::{debug, error, info};
@@ -130,6 +130,7 @@ impl WsClient {
       self.general_config.server_url.to_string(),
       self.charge_point_config.id
     );
+
     info!(target: "simulator", "connecting to CSMS at {}", connection_url.cyan());
 
     let request = Request::builder()
@@ -152,7 +153,16 @@ impl WsClient {
 
     let message_generator = MessageGenerator::new(MessageGeneratorConfig::default());
 
+    let mut heartbeat_interval = interval(Duration::from_secs(
+      self.charge_point_config.heartbeat_interval
+    ));
+
+    let mut status_interval = interval(Duration::from_secs(
+      self.charge_point_config.status_interval
+    ));
+
     let boot_notification = MessageGenerator::to_frame(
+      &message_generator,
       OcppAction::BootNotification,
       message_generator.boot_notification(),
     );
@@ -170,6 +180,7 @@ impl WsClient {
         tokio::time::sleep(Duration::from_secs(10)).await;
 
         let start_transaction = MessageGenerator::to_frame(
+          &message_generator,
           OcppAction::StartTransaction,
           message_generator.start_transaction(),
         );
