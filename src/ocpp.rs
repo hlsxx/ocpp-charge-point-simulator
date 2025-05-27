@@ -1,9 +1,14 @@
 use std::fmt::Display;
 
-#[derive(Clone, Debug)]
+use serde::Deserialize;
+
+#[derive(Clone, Debug, Deserialize)]
 pub enum OcppVersion {
+  #[serde(rename = "ocpp1.6")]
   V1_6,
+  #[serde(rename = "ocpp2.0.1")]
   V2_0_1,
+  #[serde(rename = "ocpp2.1")]
   V2_1,
 }
 

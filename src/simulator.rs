@@ -7,76 +7,16 @@ use tracing::info;
 use url::Url;
 
 use crate::{
-  ocpp::OcppVersion,
-  ws_client::{WsClient, WsClientConfigBuilder},
+  config::{ChargePointConfig, Config, ImplicitChargePointConfig}, ocpp::OcppVersion, ws_client::{WsClient, WsClientConfigBuilder}
 };
 use colored::Colorize;
 
-pub struct SimulatorConfig {
-  ocpp_version: OcppVersion,
-  csms_url: Url,
-  clients_num: u32
-}
-
-impl Default for SimulatorConfig {
-  fn default() -> Self {
-    Self {
-      ocpp_version: OcppVersion::V1_6,
-      csms_url: Url::parse("ws://localhost:3000").unwrap(),
-      clients_num: 1
-    }
-  }
-}
-
-pub struct SimulatorConfigBuilder {
-  ocpp_version: Option<OcppVersion>,
-  csms_url: Option<Url>,
-  clients_num: Option<u32>
-}
-
-impl SimulatorConfigBuilder {
-  pub fn new() -> Self {
-    Self {
-      ocpp_version: None,
-      csms_url: None,
-      clients_num: None
-    }
-  }
-
-  pub fn ocpp_version(mut self, ocpp_version: OcppVersion) -> Self {
-    self.ocpp_version = Some(ocpp_version);
-    self
-  }
-
-  pub fn csms_url(mut self, url_string: impl Into<String>) -> Self {
-    if let Ok(url) = Url::parse(&url_string.into()) {
-      self.csms_url = Some(url);
-    }
-    self
-  }
-
-  pub fn clients_num(mut self, clients_num: u32) -> Self {
-    self.clients_num = Some(clients_num);
-    self
-  }
-
-  pub fn build(self) -> SimulatorConfig {
-    let config_default = SimulatorConfig::default();
-
-    SimulatorConfig {
-      ocpp_version: self.ocpp_version.unwrap_or(config_default.ocpp_version),
-      csms_url: self.csms_url.unwrap_or(config_default.csms_url),
-      clients_num: self.clients_num.unwrap_or(config_default.clients_num),
-    }
-  }
-}
-
 pub struct Simulator {
-  config: SimulatorConfig,
+  config: Config,
 }
 
 impl Simulator {
-  pub fn new(config: SimulatorConfig) -> Self {
+  pub fn new(config: Config) -> Self {
     info!(
       "{}",
       format!("ocpp-charge-point-simulator v{}", env!("CARGO_PKG_VERSION")).cyan()
@@ -90,38 +30,43 @@ impl Simulator {
 
     let mut handles: Vec<JoinHandle<()>> = Vec::new();
 
-    match self.config.ocpp_version {
-      OcppVersion::V1_6 => {
-        for i in 0..self.config.clients_num {
-          let ws_client_config = Arc::new(WsClientConfigBuilder::new()
-            .csms_url(self.config.csms_url.clone())
-            .serial_number(format!("a-b-c-d-e-{}", i))
-            //.model("TEST")
-            //.vendor("TEST")
-            .build());
+    let mut all_charge_points = self.config.charge_points.clone();
 
-          let ws_client_config = ws_client_config.clone();
+    if let Some(implicit_charge_points) = &self.config.implicit_charge_points {
+      let generated = Self::generate_implicit_charge_points(&implicit_charge_points);
+      all_charge_points.extend(generated);
+    }
 
-          let handle = tokio::spawn(async move {
-            let mut client = WsClient::new(ws_client_config.clone());
+    let general_config = Arc::new(self.config.general.clone());
+    for charge_point_config in all_charge_points {
+      let general_config_clone = general_config.clone();
 
-            if let Err(e) = client.run().await {
-              eprintln!("Client {} failed: {:?}", i, e);
-            }
-          });
+      let handle = tokio::spawn(async move {
+        let mut client = WsClient::new(general_config_clone, charge_point_config);
 
-          handles.push(handle);
+        if let Err(e) = client.run().await {
+          eprintln!("Client failed: {:?}",  e);
         }
-      }
-      OcppVersion::V2_1 => {
-        todo!()
-      }
-      OcppVersion::V2_0_1 => {
-        todo!()
-      }
+      });
+
+      handles.push(handle);
     }
 
     join_all(handles).await;
 
-    Ok(()) }
+    Ok(())
+  }
+
+  fn generate_implicit_charge_points(cfg: &ImplicitChargePointConfig) -> Vec<ChargePointConfig> {
+    (0..cfg.count)
+      .map(|i| ChargePointConfig {
+        id: format!("{}{:06}", cfg.prefix, i),
+        boot_delay_ms: rand::random_range(cfg.boot_delay_range[0]..=cfg.boot_delay_range[1]),
+        heartbeat_interval: rand::random_range(cfg.heartbeat_interval_range[0]..=cfg.heartbeat_interval_range[1]),
+        status_interval: rand::random_range(cfg.status_interval_range[0]..=cfg.status_interval_range[1]),
+        start_tx_after: rand::random_range(cfg.start_tx_after_range[0]..=cfg.start_tx_after_range[1]),
+        stop_tx_after: rand::random_range(cfg.stop_tx_after_range[0]..=cfg.stop_tx_after_range[1]),
+      })
+      .collect()
+  }
 }

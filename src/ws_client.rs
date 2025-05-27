@@ -16,7 +16,7 @@ use tungstenite::{
 };
 use url::Url;
 use uuid::Uuid;
-use crate::message_generator::MessageGeneratorTrait;
+use crate::{config::{ChargePointConfig, GeneralConfig}, message_generator::MessageGeneratorTrait};
 
 use crate::{
   //message_generator::MessageGeneratorTrait,
@@ -104,30 +104,27 @@ impl WsClientConfigBuilder {
 }
 
 pub struct WsClient {
-  config: Arc<WsClientConfig>,
+  general_config: Arc<GeneralConfig>,
+  charge_point_config: ChargePointConfig
 }
 
 impl WsClient {
-  pub fn new(config: Arc<WsClientConfig>) -> Self {
-    Self { config }
+  pub fn new(general_config: Arc<GeneralConfig>, charge_point_config: ChargePointConfig) -> Self {
+    Self { general_config, charge_point_config }
   }
 
   pub async fn run(&mut self) -> Result<()> {
-    let connection_url = format!("{}/{}", self.config.csms_url.to_string(), self.config.charge_point_id);
+    let connection_url = format!("{}/{}", self.general_config.server_url.to_string(), self.charge_point_config.id);
     info!(target: "simulator", "connecting to CSMS at {}", connection_url.cyan());
 
     let request = Request::builder()
       .method("GET")
-      .uri(connection_url)
+      .uri(&connection_url)
       .header(
         HOST,
-        format!(
-          "{}{}",
-          self.config.csms_url.host_str().unwrap(),
-          self.config.csms_url.port().unwrap()
-        ),
+        connection_url
       )
-      .header(SEC_WEBSOCKET_PROTOCOL, "ocpp1.6")
+      .header(SEC_WEBSOCKET_PROTOCOL, &self.general_config.ocpp_version.to_string())
       .header(CONNECTION, "Upgrade")
       .header(UPGRADE, "Websocket")
       .header(SEC_WEBSOCKET_VERSION, "13")
