@@ -3,14 +3,15 @@ debug_mode = true
 server_url = "ws://localhost:3000/charge-point"
 ocpp_version = "ocpp1.6"
 
-[implicit_charge_points]
-count = 5
-prefix = "CP"
-boot_delay_range = [1, 60]
-heartbeat_interval_range = [30, 90]
-status_interval_range = [10, 60]
-start_tx_after_range = [5, 15]
-stop_tx_after_range = [20, 60]
+# Implicit charge points
+#[implicit_charge_points]
+#count = 5
+#prefix = "CP"
+#boot_delay_range = [1, 60]
+#heartbeat_interval_range = [30, 90]
+#status_interval_range = [10, 60]
+#start_tx_after_range = [5, 15]
+#stop_tx_after_range = [20, 60]
 
 # Explicitly defined charge points
 [[charge_points]]
