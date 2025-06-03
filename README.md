@@ -2,7 +2,7 @@
 
 Simple OCPP charger simulator written in Rust
 
-# Supported versions
+## Supported versions
 - [X] v1.6
 - [ ] v2.0.1
 - [ ] v2.1
