@@ -17,4 +17,7 @@ git clone https://github.com/hlsxx/ocpp-charge-point-simulator.git
 2. Configure config.toml to suit your needs.
 3. Run the project using **cargo run**.
 
+<div align="center">
+  <img src="https://github.com/hlsxx/ocpp-charge-point-simulator/blob/master/blob/example.png" alt="Example" style="width:100%; max-height:400px" />
+</div>
 
