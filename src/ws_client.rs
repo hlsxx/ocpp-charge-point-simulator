@@ -26,7 +26,9 @@ use url::Url;
 
 use crate::{
   ocpp::OcppVersion,
-  v1_6::{message::MessageGenerator, types::OcppAction},
+  v1_6::{message::MessageGenerator as Ocpp16MessageGenerator, types::OcppAction},
+  v2_0_1::{message::MessageGenerator as Ocpp201MessageGenerator, types::OcppAction},
+  // v2_1::{message::MessageGenerator as V2_1MessageGenerator, types::OcppAction},
 };
 
 pub struct WsClientConfig {
@@ -150,7 +152,11 @@ impl WsClient {
     let (ws_stream, _) = connect_async(request).await?;
     let (mut ws_tx, mut ws_rx) = ws_stream.split();
 
-    let message_generator = MessageGenerator::new(MessageGeneratorConfig::default());
+    let message_generator: Box<dyn MessageGeneratorTrait> = match self.general_config.ocpp_version {
+      OcppVersion::V1_6 => Box::new(Ocpp16MessageGenerator::new(MessageGeneratorConfig::default())),
+      OcppVersion::V2_0_1 => Box::new(Ocpp201MessageGenerator::new(MessageGeneratorConfig::default())),
+      OcppVersion::V2_1 => Box::new(Ocpp201MessageGenerator::new(MessageGeneratorConfig::default())),
+    };
 
     let mut heartbeat_interval = interval(Duration::from_secs(
       self.charge_point_config.heartbeat_interval,
