@@ -1,6 +1,6 @@
 use crate::{
   config::{ChargePointConfig, GeneralConfig},
-  message_generator::MessageGeneratorTrait,
+  message::{MessageGeneratorTrait, MessageGeneratorConfig},
 };
 
 use anyhow::Result;
@@ -25,12 +25,8 @@ use tungstenite::{
 use url::Url;
 
 use crate::{
-  //message_generator::MessageGeneratorTrait,
   ocpp::OcppVersion,
-  v1_6::{
-    message_generator::{MessageGenerator, MessageGeneratorConfig},
-    types::OcppAction,
-  },
+  v1_6::{message::MessageGenerator, types::OcppAction},
 };
 
 pub struct WsClientConfig {

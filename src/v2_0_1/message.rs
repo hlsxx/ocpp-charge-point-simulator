@@ -1,0 +1,135 @@
+use std::sync::atomic::{AtomicUsize, Ordering};
+
+use rust_ocpp::v1_6::messages::{
+  authorize::AuthorizeRequest, boot_notification::BootNotificationRequest,
+  data_transfer::DataTransferRequest,
+  diagnostics_status_notification::DiagnosticsStatusNotificationRequest,
+  firmware_status_notification::FirmwareStatusNotificationRequest, heart_beat::HeartbeatRequest,
+  meter_values::MeterValuesRequest, start_transaction::StartTransactionRequest,
+  status_notification::StatusNotificationRequest, stop_transaction::StopTransactionRequest,
+};
+
+use rust_ocpp::v1_6::types::ChargePointErrorCode;
+use rust_ocpp::v1_6::types::ChargePointStatus;
+use rust_ocpp::v1_6::types::DiagnosticsStatus;
+use rust_ocpp::v1_6::types::FirmwareStatus;
+use serde::Serialize;
+use serde_json::{Value, json};
+
+use crate::message::{MessageGeneratorConfig, MessageGeneratorTrait};
+use uuid::Uuid;
+
+use super::types::OcppAction;
+
+pub struct MessageGenerator {
+  config: MessageGeneratorConfig,
+  id_counter: AtomicUsize,
+}
+
+impl MessageGeneratorTrait for MessageGenerator {
+  type OcppAction = OcppAction;
+
+  type BootNotification = BootNotificationRequest;
+  type Heartbeat = HeartbeatRequest;
+  type Authorize = AuthorizeRequest;
+  type StartTransaction = StartTransactionRequest;
+  type StopTransaction = StopTransactionRequest;
+  type StatusNotification = StatusNotificationRequest;
+  type MeterValues = MeterValuesRequest;
+  type DiagnosticsStatusNotification = DiagnosticsStatusNotificationRequest;
+  type FirmwareStatusNotification = FirmwareStatusNotificationRequest;
+  type DataTransfer = DataTransferRequest;
+
+  fn boot_notification(&self) -> Self::BootNotification {
+    BootNotificationRequest {
+      charge_point_model: self.config.model.clone(),
+      charge_point_vendor: self.config.vendor.clone(),
+      ..Default::default()
+    }
+  }
+
+  fn heartbeat(&self) -> Self::Heartbeat {
+    HeartbeatRequest {}
+  }
+
+  fn authorize(&self) -> Self::Authorize {
+    AuthorizeRequest {
+      id_tag: self.config.id_tag.clone(),
+    }
+  }
+
+  fn start_transaction(&self) -> Self::StartTransaction {
+    StartTransactionRequest {
+      connector_id: 1,
+      id_tag: self.config.id_tag.clone(),
+      meter_start: 0,
+      timestamp: chrono::Utc::now(),
+      ..Default::default()
+    }
+  }
+
+  fn stop_transaction(&self) -> Self::StopTransaction {
+    StopTransactionRequest {
+      meter_stop: 10,
+      timestamp: chrono::Utc::now(),
+      id_tag: Some(self.config.id_tag.clone()),
+      transaction_id: 1,
+      ..Default::default()
+    }
+  }
+
+  fn status_notification(&self) -> Self::StatusNotification {
+    StatusNotificationRequest {
+      connector_id: 1,
+      error_code: ChargePointErrorCode::NoError,
+      status: ChargePointStatus::Available,
+      timestamp: Some(chrono::Utc::now()),
+      ..Default::default()
+    }
+  }
+
+  fn meter_values(&self) -> Self::MeterValues {
+    MeterValuesRequest {
+      connector_id: 1,
+      meter_value: vec![],
+      transaction_id: Some(1),
+    }
+  }
+
+  fn diagnostics_status_notification(&self) -> Self::DiagnosticsStatusNotification {
+    DiagnosticsStatusNotificationRequest {
+      status: DiagnosticsStatus::Uploaded,
+    }
+  }
+
+  fn firmware_status_notification(&self) -> Self::FirmwareStatusNotification {
+    FirmwareStatusNotificationRequest {
+      status: FirmwareStatus::Installed,
+    }
+  }
+
+  fn data_transfer(&self) -> Self::DataTransfer {
+    DataTransferRequest {
+      vendor_string: self.config.vendor.clone(),
+      ..Default::default()
+    }
+  }
+
+  fn next_id(&self) -> String {
+    self.id_counter.fetch_add(1, Ordering::Relaxed).to_string()
+  }
+
+  fn to_frame<T: Serialize>(&self, action: Self::OcppAction, payload: T) -> Value {
+    let id = self.next_id();
+    json!([2, id, action, payload])
+  }
+}
+
+impl MessageGenerator {
+  pub fn new(config: MessageGeneratorConfig) -> Self {
+    Self {
+      config,
+      id_counter: AtomicUsize::new(1),
+    }
+  }
+}
