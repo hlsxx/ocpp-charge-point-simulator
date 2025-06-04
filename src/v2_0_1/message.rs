@@ -1,18 +1,26 @@
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-use rust_ocpp::v1_6::messages::{
+use chrono::Utc;
+use rust_ocpp::v2_0_1::datatypes::transaction_type::TransactionType;
+use rust_ocpp::v2_0_1::enumerations::connector_status_enum_type::ConnectorStatusEnumType;
+use rust_ocpp::v2_0_1::enumerations::firmware_status_enum_type::FirmwareStatusEnumType;
+use rust_ocpp::v2_0_1::enumerations::id_token_enum_type::IdTokenEnumType;
+use rust_ocpp::v2_0_1::enumerations::transaction_event_enum_type::TransactionEventEnumType;
+use rust_ocpp::v2_0_1::enumerations::trigger_reason_enum_type::TriggerReasonEnumType;
+use rust_ocpp::v2_0_1::messages::transaction_event::TransactionEventRequest;
+use rust_ocpp::v2_0_1::messages::{
   authorize::AuthorizeRequest, boot_notification::BootNotificationRequest,
-  data_transfer::DataTransferRequest,
-  diagnostics_status_notification::DiagnosticsStatusNotificationRequest,
-  firmware_status_notification::FirmwareStatusNotificationRequest, heart_beat::HeartbeatRequest,
-  meter_values::MeterValuesRequest, start_transaction::StartTransactionRequest,
-  status_notification::StatusNotificationRequest, stop_transaction::StopTransactionRequest,
+  datatransfer::DataTransferRequest,
+  heartbeat::HeartbeatRequest,
+  firmware_status_notification::FirmwareStatusNotificationRequest,
+  meter_values::MeterValuesRequest,
+  status_notification::StatusNotificationRequest
 };
 
-use rust_ocpp::v1_6::types::ChargePointErrorCode;
-use rust_ocpp::v1_6::types::ChargePointStatus;
-use rust_ocpp::v1_6::types::DiagnosticsStatus;
-use rust_ocpp::v1_6::types::FirmwareStatus;
+use rust_ocpp::v2_0_1::enumerations::boot_reason_enum_type::BootReasonEnumType;
+use rust_ocpp::v2_0_1::datatypes::charging_station_type::ChargingStationType;
+use rust_ocpp::v2_0_1::datatypes::id_token_type::IdTokenType;
+
 use serde::Serialize;
 use serde_json::{Value, json};
 
@@ -32,18 +40,24 @@ impl MessageGeneratorTrait for MessageGenerator {
   type BootNotification = BootNotificationRequest;
   type Heartbeat = HeartbeatRequest;
   type Authorize = AuthorizeRequest;
-  type StartTransaction = StartTransactionRequest;
-  type StopTransaction = StopTransactionRequest;
+  type StartTransaction = TransactionEventRequest;
+  type StopTransaction = TransactionEventRequest;
   type StatusNotification = StatusNotificationRequest;
   type MeterValues = MeterValuesRequest;
-  type DiagnosticsStatusNotification = DiagnosticsStatusNotificationRequest;
+  type DiagnosticsStatusNotification = HeartbeatRequest;
+  //type DiagnosticsStatusNotification = DiagnosticsStatusNotificationRequest;
   type FirmwareStatusNotification = FirmwareStatusNotificationRequest;
   type DataTransfer = DataTransferRequest;
 
   fn boot_notification(&self) -> Self::BootNotification {
     BootNotificationRequest {
-      charge_point_model: self.config.model.clone(),
-      charge_point_vendor: self.config.vendor.clone(),
+      reason: BootReasonEnumType::PowerUp,
+      charging_station: ChargingStationType {
+        model: self.config.model.clone(),
+        vendor_name: self.config.vendor.clone(),
+        firmware_version: Some("1.2.3".to_string()),
+        ..Default::default()
+      },
       ..Default::default()
     }
   }
@@ -54,63 +68,75 @@ impl MessageGeneratorTrait for MessageGenerator {
 
   fn authorize(&self) -> Self::Authorize {
     AuthorizeRequest {
-      id_tag: self.config.id_tag.clone(),
+      id_token: IdTokenType {
+        id_token: self.config.id_tag.clone(),
+        additional_info: None,
+        kind: IdTokenEnumType::Central
+      },
+      ..Default::default()
     }
   }
 
   fn start_transaction(&self) -> Self::StartTransaction {
-    StartTransactionRequest {
-      connector_id: 1,
-      id_tag: self.config.id_tag.clone(),
-      meter_start: 0,
+    TransactionEventRequest {
+      event_type: TransactionEventEnumType::Started,
       timestamp: chrono::Utc::now(),
+      trigger_reason: TriggerReasonEnumType::CablePluggedIn,
+      seq_no: 1,
+      transaction_info: TransactionType {
+        transaction_id: "42".to_string(),
+        ..Default::default()
+      },
       ..Default::default()
     }
   }
 
   fn stop_transaction(&self) -> Self::StopTransaction {
-    StopTransactionRequest {
-      meter_stop: 10,
+    TransactionEventRequest {
+      event_type: TransactionEventEnumType::Ended,
       timestamp: chrono::Utc::now(),
-      id_tag: Some(self.config.id_tag.clone()),
-      transaction_id: 1,
+      trigger_reason: TriggerReasonEnumType::RemoteStop,
+      seq_no: 1,
+      transaction_info: TransactionType {
+        transaction_id: "42".to_string(),
+        ..Default::default()
+      },
       ..Default::default()
     }
   }
 
   fn status_notification(&self) -> Self::StatusNotification {
     StatusNotificationRequest {
+      timestamp: Utc::now(),
+      evse_id: 1,
       connector_id: 1,
-      error_code: ChargePointErrorCode::NoError,
-      status: ChargePointStatus::Available,
-      timestamp: Some(chrono::Utc::now()),
+      connector_status: ConnectorStatusEnumType::Available,
       ..Default::default()
     }
   }
 
   fn meter_values(&self) -> Self::MeterValues {
     MeterValuesRequest {
-      connector_id: 1,
-      meter_value: vec![],
-      transaction_id: Some(1),
+      evse_id: 1,
+      meter_value: Default::default(),
     }
   }
 
   fn diagnostics_status_notification(&self) -> Self::DiagnosticsStatusNotification {
-    DiagnosticsStatusNotificationRequest {
-      status: DiagnosticsStatus::Uploaded,
-    }
+    HeartbeatRequest {}
   }
 
   fn firmware_status_notification(&self) -> Self::FirmwareStatusNotification {
     FirmwareStatusNotificationRequest {
-      status: FirmwareStatus::Installed,
+      status: FirmwareStatusEnumType::Installed,
+      ..Default::default()
     }
   }
 
   fn data_transfer(&self) -> Self::DataTransfer {
     DataTransferRequest {
-      vendor_string: self.config.vendor.clone(),
+      vendor_id: self.config.vendor.clone(),
+      data: Some("test".to_string()),
       ..Default::default()
     }
   }
