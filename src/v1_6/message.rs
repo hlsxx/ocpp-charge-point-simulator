@@ -44,8 +44,8 @@ impl MessageBuilder {
 
 impl MessageBuilderTrait for MessageBuilder {
   fn to_call_frame(&self) -> Value {
-    let id = self.next_id();
-    json!([2, id, self.ocpp_action, self.payload])
+    // let id = self.next_id();
+    json!([2, Uuid::new_v4(), self.ocpp_action, self.payload])
   }
 }
 

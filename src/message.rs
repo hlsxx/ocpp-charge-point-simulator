@@ -8,7 +8,7 @@ pub trait MessageBuilderTrait {
   fn to_call_frame(&self) -> Value;
 }
 
-pub trait MessageGeneratorTrait {
+pub trait MessageGeneratorTrait: Send {
   fn boot_notification(&self) -> Value;
   fn heartbeat(&self) -> Value;
   fn authorize(&self) -> Value;
