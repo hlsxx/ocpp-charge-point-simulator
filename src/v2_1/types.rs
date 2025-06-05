@@ -25,7 +25,7 @@ pub enum OcppMessage {
   },
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub enum OcppAction {
   // Core Profile
   Authorize,

@@ -25,6 +25,7 @@ use serde::Serialize;
 use serde_json::{Value, json};
 
 use crate::message::{MessageGeneratorConfig, MessageGeneratorTrait};
+use crate::ocpp::OcppActionType;
 use uuid::Uuid;
 
 use super::types::OcppAction;
@@ -35,21 +36,7 @@ pub struct MessageGenerator {
 }
 
 impl MessageGeneratorTrait for MessageGenerator {
-  type OcppAction = OcppAction;
-
-  type BootNotification = BootNotificationRequest;
-  type Heartbeat = HeartbeatRequest;
-  type Authorize = AuthorizeRequest;
-  type StartTransaction = TransactionEventRequest;
-  type StopTransaction = TransactionEventRequest;
-  type StatusNotification = StatusNotificationRequest;
-  type MeterValues = MeterValuesRequest;
-  type DiagnosticsStatusNotification = HeartbeatRequest;
-  //type DiagnosticsStatusNotification = DiagnosticsStatusNotificationRequest;
-  type FirmwareStatusNotification = FirmwareStatusNotificationRequest;
-  type DataTransfer = DataTransferRequest;
-
-  fn boot_notification(&self) -> Self::BootNotification {
+  fn boot_notification(&self) -> Value {
     BootNotificationRequest {
       reason: BootReasonEnumType::PowerUp,
       charging_station: ChargingStationType {
@@ -62,11 +49,11 @@ impl MessageGeneratorTrait for MessageGenerator {
     }
   }
 
-  fn heartbeat(&self) -> Self::Heartbeat {
-    HeartbeatRequest {}
+  fn heartbeat(&self) -> Value {
+    self.to_call_frame(OcppActionType::V2_0_1(OcppAction::Heartbeat), HeartbeatRequest {})
   }
 
-  fn authorize(&self) -> Self::Authorize {
+  fn authorize(&self) -> Value {
     AuthorizeRequest {
       id_token: IdTokenType {
         id_token: self.config.id_tag.clone(),
@@ -76,78 +63,73 @@ impl MessageGeneratorTrait for MessageGenerator {
       ..Default::default()
     }
   }
-
-  fn start_transaction(&self) -> Self::StartTransaction {
-    TransactionEventRequest {
-      event_type: TransactionEventEnumType::Started,
-      timestamp: chrono::Utc::now(),
-      trigger_reason: TriggerReasonEnumType::CablePluggedIn,
-      seq_no: 1,
-      transaction_info: TransactionType {
-        transaction_id: "42".to_string(),
-        ..Default::default()
-      },
-      ..Default::default()
-    }
-  }
-
-  fn stop_transaction(&self) -> Self::StopTransaction {
-    TransactionEventRequest {
-      event_type: TransactionEventEnumType::Ended,
-      timestamp: chrono::Utc::now(),
-      trigger_reason: TriggerReasonEnumType::RemoteStop,
-      seq_no: 1,
-      transaction_info: TransactionType {
-        transaction_id: "42".to_string(),
-        ..Default::default()
-      },
-      ..Default::default()
-    }
-  }
-
-  fn status_notification(&self) -> Self::StatusNotification {
-    StatusNotificationRequest {
-      timestamp: Utc::now(),
-      evse_id: 1,
-      connector_id: 1,
-      connector_status: ConnectorStatusEnumType::Available,
-      ..Default::default()
-    }
-  }
-
-  fn meter_values(&self) -> Self::MeterValues {
-    MeterValuesRequest {
-      evse_id: 1,
-      meter_value: Default::default(),
-    }
-  }
-
-  fn diagnostics_status_notification(&self) -> Self::DiagnosticsStatusNotification {
-    HeartbeatRequest {}
-  }
-
-  fn firmware_status_notification(&self) -> Self::FirmwareStatusNotification {
-    FirmwareStatusNotificationRequest {
-      status: FirmwareStatusEnumType::Installed,
-      ..Default::default()
-    }
-  }
-
-  fn data_transfer(&self) -> Self::DataTransfer {
-    DataTransferRequest {
-      vendor_id: self.config.vendor.clone(),
-      data: Some("test".to_string()),
-      ..Default::default()
-    }
-  }
+  //
+  // fn start_transaction(&self) -> Self::StartTransaction {
+  //   TransactionEventRequest {
+  //     event_type: TransactionEventEnumType::Started,
+  //     timestamp: chrono::Utc::now(),
+  //     trigger_reason: TriggerReasonEnumType::CablePluggedIn,
+  //     seq_no: 1,
+  //     transaction_info: TransactionType {
+  //       transaction_id: "42".to_string(),
+  //       ..Default::default()
+  //     },
+  //     ..Default::default()
+  //   }
+  // }
+  //
+  // fn stop_transaction(&self) -> Self::StopTransaction {
+  //   TransactionEventRequest {
+  //     event_type: TransactionEventEnumType::Ended,
+  //     timestamp: chrono::Utc::now(),
+  //     trigger_reason: TriggerReasonEnumType::RemoteStop,
+  //     seq_no: 1,
+  //     transaction_info: TransactionType {
+  //       transaction_id: "42".to_string(),
+  //       ..Default::default()
+  //     },
+  //     ..Default::default()
+  //   }
+  // }
+  //
+  // fn status_notification(&self) -> Self::StatusNotification {
+  //   StatusNotificationRequest {
+  //     timestamp: Utc::now(),
+  //     evse_id: 1,
+  //     connector_id: 1,
+  //     connector_status: ConnectorStatusEnumType::Available,
+  //     ..Default::default()
+  //   }
+  // }
+  //
+  // fn meter_values(&self) -> Self::MeterValues {
+  //   MeterValuesRequest {
+  //     evse_id: 1,
+  //     meter_value: Default::default(),
+  //   }
+  // }
+  //
+  // fn diagnostics_status_notification(&self) -> Self::DiagnosticsStatusNotification {
+  //   HeartbeatRequest {}
+  // }
+  //
+  // fn firmware_status_notification(&self) -> Self::FirmwareStatusNotification {
+  //   FirmwareStatusNotificationRequest {
+  //     status: FirmwareStatusEnumType::Installed,
+  //     ..Default::default()
+  //   }
+  // }
+  //
+  // fn data_transfer(&self) -> Self::DataTransfer {
+  //   DataTransferRequest {
+  //     vendor_id: self.config.vendor.clone(),
+  //     data: Some("test".to_string()),
+  //     ..Default::default()
+  //   }
+  // }
 
   fn next_id(&self) -> String {
     self.id_counter.fetch_add(1, Ordering::Relaxed).to_string()
-  }
-
-  fn to_frame<T: Serialize>(&self, action: Self::OcppAction, payload: T) -> Value {
-    let id = self.next_id();
-    json!([2, id, action, payload])
   }
 }
 

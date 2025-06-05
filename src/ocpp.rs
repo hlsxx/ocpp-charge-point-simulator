@@ -1,6 +1,5 @@
-use std::fmt::Display;
-
-use serde::Deserialize;
+use std::fmt::{write, Display};
+use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Deserialize)]
 pub enum OcppVersion {
@@ -12,13 +11,6 @@ pub enum OcppVersion {
   V2_1,
 }
 
-#[derive(Debug)]
-pub enum OcppMessageType {
-  V1_6(v1_6::OcppMessage),
-  V2_0_1(v2_0_1::OcppMessage),
-  V2_1(v2_1::OcppMessage),
-}
-
 impl Display for OcppVersion {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     let version_str = match self {
@@ -28,6 +20,23 @@ impl Display for OcppVersion {
     };
 
     write!(f, "{}", version_str)
+  }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub enum OcppActionType {
+  V1_6(crate::v1_6::types::OcppAction),
+  V2_0_1(crate::v2_0_1::types::OcppAction),
+  V2_1(crate::v2_1::types::OcppAction),
+}
+
+impl Display for OcppActionType {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    match self {
+      OcppActionType::V1_6(action) => write!(f, "{}", action),
+      OcppActionType::V2_0_1(action) => write!(f, "{}", action),
+      OcppActionType::V2_1(action) => write!(f, "{}", action),
+    }
   }
 }
 

@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 #[derive(Debug, Serialize)]
@@ -23,7 +23,7 @@ pub enum OcppMessage {
 }
 
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub enum OcppAction {
   // CP → CSMS
   BootNotification,

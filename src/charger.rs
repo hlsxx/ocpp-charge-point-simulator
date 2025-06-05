@@ -26,8 +26,8 @@ use url::Url;
 
 use crate::{
   ocpp::OcppVersion,
-  v1_6::{message::MessageGenerator as Ocpp16MessageGenerator, types::OcppAction},
-  v2_0_1::{message::MessageGenerator as Ocpp201MessageGenerator, types::OcppAction},
+  v1_6::{message::MessageGenerator as Ocpp16MessageGenerator},
+  v2_0_1::{message::MessageGenerator as Ocpp201MessageGenerator},
   // v2_1::{message::MessageGenerator as V2_1MessageGenerator, types::OcppAction},
 };
 
@@ -174,56 +174,26 @@ impl Charger {
       self.charge_point_config.stop_tx_after,
     ));
 
-    let boot_notification = MessageGenerator::to_frame(
-      &message_generator,
-      OcppAction::BootNotification,
-      message_generator.boot_notification(),
-    );
-
     let _ = sleep(Duration::from_millis(self.charge_point_config.boot_delay_interval)).await;
 
     ws_tx
-      .send(Message::Text(boot_notification.to_string().into()))
+      .send(Message::Text(message_generator.boot_notification().to_string().into()))
       .await
       .unwrap();
 
     loop {
       select! {
         _ = start_tx_interval.tick() => {
-          let start_transaction = MessageGenerator::to_frame(
-            &message_generator,
-            OcppAction::StartTransaction,
-            message_generator.start_transaction(),
-          );
-
-          let _ = ws_tx.send(Message::Text(start_transaction.to_string().into())).await;
+          // let _ = ws_tx.send(Message::Text(message_generator.start_transaction().to_string().into())).await;
         },
         _ = stop_tx_interval.tick() => {
-          let stop_transaction = MessageGenerator::to_frame(
-            &message_generator,
-            OcppAction::StopTransaction,
-            message_generator.stop_transaction(),
-          );
-
-          let _ = ws_tx.send(Message::Text(stop_transaction.to_string().into())).await;
+          // let _ = ws_tx.send(Message::Text(message_generator.stop_transaction().to_string().into())).await;
         },
         _ = heartbeat_interval.tick() => {
-          let heartbeat_notification = MessageGenerator::to_frame(
-            &message_generator,
-            OcppAction::Heartbeat,
-            message_generator.heartbeat(),
-          );
-
-          let _ = ws_tx.send(Message::Text(heartbeat_notification.to_string().into())).await;
+          let _ = ws_tx.send(Message::Text(message_generator.heartbeat().to_string().into())).await;
         },
         _ = status_interval.tick() => {
-          let status_notification = MessageGenerator::to_frame(
-            &message_generator,
-            OcppAction::StatusNotification,
-            message_generator.status_notification(),
-          );
-
-          let _ = ws_tx.send(Message::Text(status_notification.to_string().into())).await;
+          // let _ = ws_tx.send(Message::Text(message_generator.status_notification().to_string().into())).await;
         },
         Some(msg) = ws_rx.next() => {
           match msg {
