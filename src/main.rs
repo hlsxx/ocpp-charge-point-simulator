@@ -6,7 +6,7 @@ pub mod simulator;
 pub mod v1_6;
 pub mod v2_0_1;
 pub mod v2_1;
-pub mod ws_client;
+pub mod charger;
 
 use anyhow::Result;
 use config::Config;

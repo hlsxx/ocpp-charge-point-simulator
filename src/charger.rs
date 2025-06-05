@@ -31,7 +31,7 @@ use crate::{
   // v2_1::{message::MessageGenerator as V2_1MessageGenerator, types::OcppAction},
 };
 
-pub struct WsClientConfig {
+pub struct ChargerConfig {
   csms_url: Url,
   charge_point_id: String,
   serial_number: String,
@@ -39,7 +39,7 @@ pub struct WsClientConfig {
   model: String,
 }
 
-impl Default for WsClientConfig {
+impl Default for ChargerConfig {
   fn default() -> Self {
     Self {
       csms_url: Url::parse("ws://localhost:3000").unwrap(),
@@ -51,7 +51,7 @@ impl Default for WsClientConfig {
   }
 }
 
-pub struct WsClientConfigBuilder {
+pub struct ChargerConfigBuilder {
   csms_url: Option<Url>,
   charge_point_id: Option<String>,
   serial_number: Option<String>,
@@ -59,7 +59,7 @@ pub struct WsClientConfigBuilder {
   model: Option<String>,
 }
 
-impl WsClientConfigBuilder {
+impl ChargerConfigBuilder {
   pub fn new() -> Self {
     Self {
       csms_url: None,
@@ -97,10 +97,10 @@ impl WsClientConfigBuilder {
     self
   }
 
-  pub fn build(self) -> WsClientConfig {
-    let config_default = WsClientConfig::default();
+  pub fn build(self) -> ChargerConfig {
+    let config_default = ChargerConfig::default();
 
-    WsClientConfig {
+    ChargerConfig {
       csms_url: self.csms_url.unwrap_or(config_default.csms_url),
       charge_point_id: self
         .charge_point_id
@@ -112,12 +112,12 @@ impl WsClientConfigBuilder {
   }
 }
 
-pub struct WsClient {
+pub struct Charger {
   general_config: Arc<GeneralConfig>,
   charge_point_config: ChargePointConfig,
 }
 
-impl WsClient {
+impl Charger {
   pub fn new(general_config: Arc<GeneralConfig>, charge_point_config: ChargePointConfig) -> Self {
     Self {
       general_config,

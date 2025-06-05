@@ -12,6 +12,13 @@ pub enum OcppVersion {
   V2_1,
 }
 
+#[derive(Debug)]
+pub enum OcppMessageType {
+  V1_6(v1_6::OcppMessage),
+  V2_0_1(v2_0_1::OcppMessage),
+  V2_1(v2_1::OcppMessage),
+}
+
 impl Display for OcppVersion {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     let version_str = match self {

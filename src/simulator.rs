@@ -9,8 +9,9 @@ use tracing::info;
 use crate::{
   config::{ChargePointConfig, Config, ImplicitChargePointConfig},
   ocpp::OcppVersion,
-  ws_client::{WsClient, WsClientConfigBuilder},
+  charger::{Charger, ChargerConfigBuilder}
 };
+
 use colored::Colorize;
 
 pub struct Simulator {
@@ -44,9 +45,9 @@ impl Simulator {
       let general_config_clone = general_config.clone();
 
       let handle = tokio::spawn(async move {
-        let mut client = WsClient::new(general_config_clone, charge_point_config);
+        let mut charger = Charger::new(general_config_clone, charge_point_config);
 
-        if let Err(e) = client.run().await {
+        if let Err(e) = charger.run().await {
           eprintln!("Client failed: {:?}", e);
         }
       });
@@ -59,6 +60,7 @@ impl Simulator {
     Ok(())
   }
 
+  /// Generates implicit charge points from the config file.
   fn generate_implicit_charge_points(cfg: &ImplicitChargePointConfig) -> Vec<ChargePointConfig> {
     (0..cfg.count)
       .map(|i| ChargePointConfig {

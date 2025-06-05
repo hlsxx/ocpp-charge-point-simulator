@@ -1,6 +1,29 @@
 use std::str::FromStr;
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
+use serde_json::Value;
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(tag = "messageTypeId", rename_all = "camelCase")]
+pub enum OcppMessage {
+  #[serde(rename_all = "camelCase")]
+  Call {
+    message_id: String,
+    action: String,
+    payload: Value,
+  },
+  #[serde(rename_all = "camelCase")]
+  CallResult {
+    message_id: String,
+    payload: Value,
+  },
+  #[serde(rename_all = "camelCase")]
+  CallError {
+    message_id: String,
+    error_code: String,
+    error_description: String,
+  },
+}
 
 #[derive(Debug, Serialize)]
 pub enum OcppAction {

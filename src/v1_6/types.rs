@@ -1,6 +1,27 @@
 use std::str::FromStr;
 
 use serde::Serialize;
+use serde_json::Value;
+
+#[derive(Debug, Serialize)]
+// #[serde(untagged)]
+pub enum OcppMessage {
+  Call {
+    msg_id: String,
+    action: OcppAction,
+    payload: Value,
+  },
+  CallResult {
+    msg_id: String,
+    payload: Value,
+  },
+  CallError {
+    msg_id: String,
+    error_code: String,
+    description: String,
+  },
+}
+
 
 #[derive(Debug, Serialize)]
 pub enum OcppAction {
