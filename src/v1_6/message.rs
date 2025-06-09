@@ -34,15 +34,40 @@ struct FrameBuilder {
 }
 
 impl FrameBuilder {
-  fn new<T: Serialize>(ocpp_action: OcppAction, payload: T) -> Value {
+  fn build_call<T: Serialize>(ocpp_action: OcppAction, payload: T) -> Value {
     // let id = self.next_id();
     json!([2, Uuid::new_v4(), ocpp_action, payload])
+  }
+
+  pub fn build_call_result<T: Serialize>(message_id: &str, payload: T) -> Value {
+    json!([
+      3,
+      message_id,
+      payload
+    ])
+  }
+
+  pub fn build_call_error(
+    message_id: &str,
+    error_code: &str,
+    error_description: &str,
+    error_details: Option<Value>,
+  ) -> Value {
+    json!([
+      4,
+      message_id,
+      error_code,
+      error_description,
+      error_details.unwrap_or_else(|| json!({}))
+    ])
   }
 }
 
 impl MessageGeneratorTrait for MessageGenerator {
+  // Charger -> CSMS
+
   fn boot_notification(&self) -> Value {
-    FrameBuilder::new(OcppAction::BootNotification, BootNotificationRequest {
+    FrameBuilder::build_call(OcppAction::BootNotification, BootNotificationRequest {
       charge_point_model: self.config.model.clone(),
       charge_point_vendor: self.config.vendor.clone(),
       ..Default::default()
@@ -50,74 +75,74 @@ impl MessageGeneratorTrait for MessageGenerator {
   }
 
   fn heartbeat(&self) -> Value {
-    FrameBuilder::new(OcppAction::Heartbeat, HeartbeatRequest {})
+    FrameBuilder::build_call(OcppAction::Heartbeat, HeartbeatRequest {})
   }
 
   fn authorize(&self) -> Value {
-    FrameBuilder::new(OcppAction::Authorize,
+    FrameBuilder::build_call(OcppAction::Authorize,
       AuthorizeRequest {
         id_tag: self.config.id_tag.clone(),
       }
     )
   }
 
-  // fn start_transaction(&self) -> Value {
-  //   MessageBuilder::new(OcppAction::StartTransaction, StartTransactionRequest {
-  //     connector_id: 1,
-  //     id_tag: self.config.id_tag.clone(),
-  //     meter_start: 0,
-  //     timestamp: chrono::Utc::now(),
-  //     ..Default::default()
-  //   }).to_call_frame()
-  // }
-  //
-  // fn stop_transaction(&self) -> Value {
-  //   MessageBuilder::new(OcppAction::StopTransaction, StopTransactionRequest {
-  //     meter_stop: 10,
-  //     timestamp: chrono::Utc::now(),
-  //     id_tag: Some(self.config.id_tag.clone()),
-  //     transaction_id: 1,
-  //     ..Default::default()
-  //   }).to_call_frame()
-  // }
+  fn start_transaction(&self) -> Value {
+    FrameBuilder::build_call(OcppAction::StartTransaction, StartTransactionRequest {
+      connector_id: 1,
+      id_tag: self.config.id_tag.clone(),
+      meter_start: 0,
+      timestamp: chrono::Utc::now(),
+      ..Default::default()
+    })
+  }
 
-  // fn status_notification(&self) -> Self::StatusNotification {
-  //   StatusNotificationRequest {
-  //     connector_id: 1,
-  //     error_code: ChargePointErrorCode::NoError,
-  //     status: ChargePointStatus::Available,
-  //     timestamp: Some(chrono::Utc::now()),
-  //     ..Default::default()
-  //   }
-  // }
+  fn stop_transaction(&self) -> Value {
+    FrameBuilder::build_call(OcppAction::StopTransaction, StopTransactionRequest {
+      meter_stop: 10,
+      timestamp: chrono::Utc::now(),
+      id_tag: Some(self.config.id_tag.clone()),
+      transaction_id: 1,
+      ..Default::default()
+    })
+  }
 
-  // fn meter_values(&self) -> Self::MeterValues {
-  //   MeterValuesRequest {
-  //     connector_id: 1,
-  //     meter_value: vec![],
-  //     transaction_id: Some(1),
-  //   }
-  // }
+  fn status_notification(&self) -> Value {
+    FrameBuilder::build_call(OcppAction::StatusNotification, StatusNotificationRequest {
+      connector_id: 1,
+      error_code: ChargePointErrorCode::NoError,
+      status: ChargePointStatus::Available,
+      timestamp: Some(chrono::Utc::now()),
+      ..Default::default()
+    })
+  }
 
-  // fn diagnostics_status_notification(&self) -> Self::DiagnosticsStatusNotification {
-  //   DiagnosticsStatusNotificationRequest {
-  //     status: DiagnosticsStatus::Uploaded,
-  //   }
-  // }
-  //
-  // fn firmware_status_notification(&self) -> Self::FirmwareStatusNotification {
-  //   FirmwareStatusNotificationRequest {
-  //     status: FirmwareStatus::Installed,
-  //   }
-  // }
-  //
-  // fn data_transfer(&self) -> Self::DataTransfer {
-  //   DataTransferRequest {
-  //     vendor_string: self.config.vendor.clone(),
-  //     ..Default::default()
-  //   }
-  // }
-  //
+  fn meter_values(&self) -> Value {
+    FrameBuilder::build_call(OcppAction::MeterValues, MeterValuesRequest {
+      connector_id: 1,
+      meter_value: vec![],
+      transaction_id: Some(1),
+    })
+  }
+
+  fn diagnostics_status_notification(&self) -> Value {
+    FrameBuilder::build_call(OcppAction::DiagnosticsStatusNotification, DiagnosticsStatusNotificationRequest {
+      status: DiagnosticsStatus::Uploaded,
+    })
+  }
+
+  fn firmware_status_notification(&self) -> Value {
+    FrameBuilder::build_call(OcppAction::FirmwareStatusNotification, FirmwareStatusNotificationRequest {
+      status: FirmwareStatus::Installed,
+    })
+  }
+
+  fn data_transfer(&self) -> Value {
+    FrameBuilder::build_call(OcppAction::StatusNotification, DataTransferRequest {
+      vendor_string: self.config.vendor.clone(),
+      ..Default::default()
+    })
+  }
+
   fn next_id(&self) -> String {
     self.id_counter.fetch_add(1, Ordering::Relaxed).to_string()
   }

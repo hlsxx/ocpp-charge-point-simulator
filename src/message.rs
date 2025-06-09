@@ -12,13 +12,13 @@ pub trait MessageGeneratorTrait: Send {
   fn boot_notification(&self) -> Value;
   fn heartbeat(&self) -> Value;
   fn authorize(&self) -> Value;
-  // fn start_transaction(&self) -> Value;
-  // fn stop_transaction(&self) -> Value;
-  // fn status_notification(&self) -> Value;
-  // fn meter_values(&self) -> Value;
-  // fn diagnostics_status_notification(&self) -> Value;
-  // fn firmware_status_notification(&self) -> Value;
-  // fn data_transfer(&self) -> Value;
+  fn start_transaction(&self) -> Value;
+  fn stop_transaction(&self) -> Value;
+  fn status_notification(&self) -> Value;
+  fn meter_values(&self) -> Value;
+  fn diagnostics_status_notification(&self) -> Value;
+  fn firmware_status_notification(&self) -> Value;
+  fn data_transfer(&self) -> Value;
 
   fn next_id(&self) -> String;
 }
