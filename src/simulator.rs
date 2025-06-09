@@ -4,12 +4,10 @@ use anyhow::Result;
 use futures_util::future::join_all;
 use tokio::task::JoinHandle;
 use tracing::info;
-//use url::Url;
 
 use crate::{
   config::{ChargePointConfig, Config, ImplicitChargePointConfig},
-  ocpp::OcppVersion,
-  charger::{Charger, ChargerConfigBuilder}
+  charger::Charger
 };
 
 use colored::Colorize;

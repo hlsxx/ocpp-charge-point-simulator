@@ -28,46 +28,37 @@ pub struct MessageGenerator {
   id_counter: AtomicUsize,
 }
 
-struct MessageBuilder {
+struct FrameBuilder {
   ocpp_action: OcppAction,
   payload: Value
 }
 
-impl MessageBuilder {
-  fn new(ocpp_action: OcppAction, payload: Value) -> Self {
-    Self {
-      ocpp_action,
-      payload
-    }
-  }
-}
-
-impl MessageBuilderTrait for MessageBuilder {
-  fn to_call_frame(&self) -> Value {
+impl FrameBuilder {
+  fn new<T: Serialize>(ocpp_action: OcppAction, payload: T) -> Value {
     // let id = self.next_id();
-    json!([2, Uuid::new_v4(), self.ocpp_action, self.payload])
+    json!([2, Uuid::new_v4(), ocpp_action, payload])
   }
 }
 
 impl MessageGeneratorTrait for MessageGenerator {
   fn boot_notification(&self) -> Value {
-    MessageBuilder::new(OcppAction::BootNotification, BootNotificationRequest {
+    FrameBuilder::new(OcppAction::BootNotification, BootNotificationRequest {
       charge_point_model: self.config.model.clone(),
       charge_point_vendor: self.config.vendor.clone(),
       ..Default::default()
-    }).to_call_frame()
+    })
   }
 
   fn heartbeat(&self) -> Value {
-    MessageBuilder::new(OcppAction::Heartbeat, HeartbeatRequest {}).to_call_frame()
+    FrameBuilder::new(OcppAction::Heartbeat, HeartbeatRequest {})
   }
 
   fn authorize(&self) -> Value {
-    MessageBuilder::new(OcppAction::Authorize,
+    FrameBuilder::new(OcppAction::Authorize,
       AuthorizeRequest {
         id_tag: self.config.id_tag.clone(),
       }
-    ).to_call_frame()
+    )
   }
 
   // fn start_transaction(&self) -> Value {

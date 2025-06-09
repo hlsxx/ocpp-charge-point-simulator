@@ -35,9 +35,21 @@ pub struct MessageGenerator {
   id_counter: AtomicUsize,
 }
 
+struct FrameBuilder {
+  ocpp_action: OcppAction,
+  payload: Value
+}
+
+impl FrameBuilder {
+  fn new<T: Serialize>(ocpp_action: OcppAction, payload: T) -> Value {
+    // let id = self.next_id();
+    json!([2, Uuid::new_v4(), ocpp_action, payload])
+  }
+}
+
 impl MessageGeneratorTrait for MessageGenerator {
   fn boot_notification(&self) -> Value {
-    BootNotificationRequest {
+    FrameBuilder::new(OcppAction::BootNotification, BootNotificationRequest {
       reason: BootReasonEnumType::PowerUp,
       charging_station: ChargingStationType {
         model: self.config.model.clone(),
@@ -46,22 +58,22 @@ impl MessageGeneratorTrait for MessageGenerator {
         ..Default::default()
       },
       ..Default::default()
-    }
+    })
   }
 
   fn heartbeat(&self) -> Value {
-    self.to_call_frame(OcppActionType::V2_0_1(OcppAction::Heartbeat), HeartbeatRequest {})
+    FrameBuilder::new(OcppAction::Heartbeat, HeartbeatRequest {})
   }
 
   fn authorize(&self) -> Value {
-    AuthorizeRequest {
+    FrameBuilder::new(OcppAction::Authorize, AuthorizeRequest {
       id_token: IdTokenType {
         id_token: self.config.id_tag.clone(),
         additional_info: None,
         kind: IdTokenEnumType::Central
       },
       ..Default::default()
-    }
+    })
   }
   //
   // fn start_transaction(&self) -> Self::StartTransaction {
