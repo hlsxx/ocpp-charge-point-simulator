@@ -36,7 +36,7 @@ impl Default for MessageGeneratorConfig {
       serial_number: String::from("ocpp-charge-point-simulator"),
       vendor: String::from("ocpp-rust"),
       model: String::from("ocpp-rust-v1"),
-      id_tag: String::from("abcdefgh"),
+      id_tag: String::from("7e181c99"),
     }
   }
 }

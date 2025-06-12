@@ -168,7 +168,10 @@ impl Charger {
       self.charge_point_config.start_tx_after,
     ));
 
+    let mut meter_values_interval = interval(Duration::from_secs(1));
+
     let mut stop_tx_deadline: Option<Instant> = None;
+    let mut transaction_active = false;
 
     let _ = sleep(Duration::from_millis(self.charge_point_config.boot_delay_interval)).await;
 
@@ -184,8 +187,11 @@ impl Charger {
             Message::Text(message_generator.start_transaction().to_string().into())
           ).await;
 
+
           stop_tx_deadline = Some(Instant::now() + Duration::from_secs(self.charge_point_config.stop_tx_after));
+          transaction_active = true;
         },
+
         _ = async {
           if let Some(deadline) = stop_tx_deadline {
             time::sleep_until(deadline).await;
@@ -196,12 +202,19 @@ impl Charger {
           let _ = ws_tx.send(Message::Text(message_generator.stop_transaction().to_string().into())).await;
           stop_tx_deadline = None;
         },
+
+        _ = meter_values_interval.tick(), if transaction_active => {
+          let _ = ws_tx.send(Message::Text(message_generator.meter_values().to_string().into())).await;
+        },
+
         _ = heartbeat_interval.tick() => {
           let _ = ws_tx.send(Message::Text(message_generator.heartbeat().to_string().into())).await;
         },
+
         _ = status_interval.tick() => {
           let _ = ws_tx.send(Message::Text(message_generator.status_notification().to_string().into())).await;
         },
+
         Some(msg) = ws_rx.next() => {
           match msg {
             Ok(Message::Text(text)) => {
