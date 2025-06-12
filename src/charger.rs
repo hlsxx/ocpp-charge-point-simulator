@@ -6,11 +6,9 @@ use crate::{
 use anyhow::Result;
 use colored::Colorize;
 use futures_util::{SinkExt, StreamExt};
-use std::sync::Arc;
+use std::{sync::Arc};
 use tokio::{
-  select,
-  sync::Mutex,
-  time::{Duration, interval, sleep},
+  select, sync::Mutex, time::{self, interval, sleep, Duration, Instant}
 };
 use tokio_tungstenite::connect_async;
 use tokio_tungstenite::tungstenite::http::Request;
@@ -170,9 +168,7 @@ impl Charger {
       self.charge_point_config.start_tx_after,
     ));
 
-    let mut stop_tx_interval = interval(Duration::from_secs(
-      self.charge_point_config.stop_tx_after,
-    ));
+    let mut stop_tx_deadline: Option<Instant> = None;
 
     let _ = sleep(Duration::from_millis(self.charge_point_config.boot_delay_interval)).await;
 
@@ -184,16 +180,27 @@ impl Charger {
     loop {
       select! {
         _ = start_tx_interval.tick() => {
-          // let _ = ws_tx.send(Message::Text(message_generator.start_transaction().to_string().into())).await;
+          let _ = ws_tx.send(
+            Message::Text(message_generator.start_transaction().to_string().into())
+          ).await;
+
+          stop_tx_deadline = Some(Instant::now() + Duration::from_secs(self.charge_point_config.stop_tx_after));
         },
-        _ = stop_tx_interval.tick() => {
-          // let _ = ws_tx.send(Message::Text(message_generator.stop_transaction().to_string().into())).await;
+        _ = async {
+          if let Some(deadline) = stop_tx_deadline {
+            time::sleep_until(deadline).await;
+          } else {
+            futures::future::pending::<()>().await;
+          }
+        }, if stop_tx_deadline.is_some() => {
+          let _ = ws_tx.send(Message::Text(message_generator.stop_transaction().to_string().into())).await;
+          stop_tx_deadline = None;
         },
         _ = heartbeat_interval.tick() => {
           let _ = ws_tx.send(Message::Text(message_generator.heartbeat().to_string().into())).await;
         },
         _ = status_interval.tick() => {
-          // let _ = ws_tx.send(Message::Text(message_generator.status_notification().to_string().into())).await;
+          let _ = ws_tx.send(Message::Text(message_generator.status_notification().to_string().into())).await;
         },
         Some(msg) = ws_rx.next() => {
           match msg {
