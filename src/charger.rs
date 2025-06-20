@@ -164,12 +164,9 @@ impl Charger {
       self.charge_point_config.status_interval,
     ));
 
-    let mut start_tx_interval = interval(Duration::from_secs(
-      self.charge_point_config.start_tx_after,
-    ));
+    let mut meter_values_interval = interval(Duration::from_secs(2));
 
-    let mut meter_values_interval = interval(Duration::from_secs(1));
-
+    let mut next_start_tx = Instant::now() + Duration::from_secs(self.charge_point_config.start_tx_after);
     let mut stop_tx_deadline: Option<Instant> = None;
     let mut transaction_active = false;
 
@@ -182,25 +179,29 @@ impl Charger {
 
     loop {
       select! {
-        _ = start_tx_interval.tick() => {
+        _ = time::sleep_until(next_start_tx), if !transaction_active => {
           let _ = ws_tx.send(
             Message::Text(message_generator.start_transaction().to_string().into())
           ).await;
-
 
           stop_tx_deadline = Some(Instant::now() + Duration::from_secs(self.charge_point_config.stop_tx_after));
           transaction_active = true;
         },
 
-        _ = async {
-          if let Some(deadline) = stop_tx_deadline {
-            time::sleep_until(deadline).await;
-          } else {
-            futures::future::pending::<()>().await;
-          }
-        }, if stop_tx_deadline.is_some() => {
-          let _ = ws_tx.send(Message::Text(message_generator.stop_transaction().to_string().into())).await;
+          _ = async {
+            if let Some(deadline) = stop_tx_deadline {
+              time::sleep_until(deadline).await;
+            } else {
+              futures::future::pending::<()>().await;
+            }
+          }, if stop_tx_deadline.is_some() => {
+          let _ = ws_tx.send(
+            Message::Text(message_generator.stop_transaction().to_string().into())
+          ).await;
+
+          transaction_active = false;
           stop_tx_deadline = None;
+          next_start_tx = Instant::now() + Duration::from_secs(self.charge_point_config.start_tx_after);
         },
 
         _ = meter_values_interval.tick(), if transaction_active => {

@@ -74,6 +74,7 @@ impl Simulator {
           cfg.start_tx_after_range[0]..=cfg.start_tx_after_range[1],
         ),
         stop_tx_after: rand::random_range(cfg.stop_tx_after_range[0]..=cfg.stop_tx_after_range[1]),
+        id_tags: cfg.id_tags.clone()
       })
       .collect()
   }
