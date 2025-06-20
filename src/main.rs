@@ -1,5 +1,4 @@
 pub mod config;
-pub mod env;
 pub mod message;
 pub mod ocpp;
 pub mod simulator;
