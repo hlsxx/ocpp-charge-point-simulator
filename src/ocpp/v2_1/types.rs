@@ -13,10 +13,7 @@ pub enum OcppMessageFrame {
     payload: Value,
   },
   #[serde(rename_all = "camelCase")]
-  CallResult {
-    message_id: String,
-    payload: Value,
-  },
+  CallResult { message_id: String, payload: Value },
   #[serde(rename_all = "camelCase")]
   CallError {
     message_id: String,

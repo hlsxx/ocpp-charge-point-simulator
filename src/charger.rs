@@ -1,14 +1,19 @@
 use crate::{
   config::{ChargePointConfig, GeneralConfig},
-  ocpp::{message_generator::{MessageBuilderTrait, MessageGeneratorConfig, MessageGeneratorTrait}, messsage_handler::OcppMessageHandler},
+  ocpp::{
+    message_generator::{MessageBuilderTrait, MessageGeneratorConfig, MessageGeneratorTrait},
+    messsage_handler::OcppMessageHandler,
+  },
 };
 
 use anyhow::Result;
 use colored::Colorize;
 use futures_util::{SinkExt, StreamExt};
-use std::{sync::Arc};
+use std::sync::Arc;
 use tokio::{
-  select, sync::Mutex, time::{self, interval, sleep, Duration, Instant}
+  select,
+  sync::Mutex,
+  time::{self, Duration, Instant, interval, sleep},
 };
 use tokio_tungstenite::connect_async;
 use tokio_tungstenite::tungstenite::http::Request;
@@ -26,15 +31,15 @@ use crate::{
   ocpp::types::OcppVersion,
   ocpp::v1_6::{
     message_generator::MessageGenerator as Ocpp16MessageGenerator,
-    message_handler::MessageHandler as Ocpp16MessageHandler
+    message_handler::MessageHandler as Ocpp16MessageHandler,
   },
   ocpp::v2_0_1::{
     message_generator::MessageGenerator as Ocpp201MessageGenerator,
-    message_handler::MessageHandler as Ocpp201MessageHandler
+    message_handler::MessageHandler as Ocpp201MessageHandler,
   },
   ocpp::v2_1::{
     message_generator::MessageGenerator as Ocpp21MessageGenerator,
-    message_handler::MessageHandler as Ocpp21MessageHandler
+    message_handler::MessageHandler as Ocpp21MessageHandler,
   },
 };
 
@@ -159,25 +164,28 @@ impl Charger {
     let (ws_stream, _) = connect_async(request).await?;
     let (mut ws_tx, mut ws_rx) = ws_stream.split();
 
-    let (ocpp_message_generator, mut ocpp_message_handler): (Box<dyn MessageGeneratorTrait>, Box<dyn OcppMessageHandler>) = match self.general_config.ocpp_version {
-      OcppVersion::V1_6 => {
-        (
-          Box::new(Ocpp16MessageGenerator::new(MessageGeneratorConfig::default())),
-          Box::new(Ocpp16MessageHandler::new())
-        )
-      },
-      OcppVersion::V2_0_1 => {
-        (
-          Box::new(Ocpp201MessageGenerator::new(MessageGeneratorConfig::default())),
-          Box::new(Ocpp201MessageHandler::new())
-        )
-      },
-      OcppVersion::V2_1 => {
-        (
-          Box::new(Ocpp21MessageGenerator::new(MessageGeneratorConfig::default())),
-          Box::new(Ocpp21MessageHandler::new())
-        )
-      }
+    let (ocpp_message_generator, mut ocpp_message_handler): (
+      Box<dyn MessageGeneratorTrait>,
+      Box<dyn OcppMessageHandler>,
+    ) = match self.general_config.ocpp_version {
+      OcppVersion::V1_6 => (
+        Box::new(Ocpp16MessageGenerator::new(
+          MessageGeneratorConfig::default(),
+        )),
+        Box::new(Ocpp16MessageHandler::new()),
+      ),
+      OcppVersion::V2_0_1 => (
+        Box::new(Ocpp201MessageGenerator::new(
+          MessageGeneratorConfig::default(),
+        )),
+        Box::new(Ocpp201MessageHandler::new()),
+      ),
+      OcppVersion::V2_1 => (
+        Box::new(Ocpp21MessageGenerator::new(
+          MessageGeneratorConfig::default(),
+        )),
+        Box::new(Ocpp21MessageHandler::new()),
+      ),
     };
 
     let mut heartbeat_interval = interval(Duration::from_secs(
@@ -190,14 +198,23 @@ impl Charger {
 
     let mut meter_values_interval = interval(Duration::from_secs(2));
 
-    let mut next_start_tx = Instant::now() + Duration::from_secs(self.charge_point_config.start_tx_after);
+    let mut next_start_tx =
+      Instant::now() + Duration::from_secs(self.charge_point_config.start_tx_after);
     let mut stop_tx_deadline: Option<Instant> = None;
     let mut transaction_active = false;
 
-    let _ = sleep(Duration::from_millis(self.charge_point_config.boot_delay_interval)).await;
+    let _ = sleep(Duration::from_millis(
+      self.charge_point_config.boot_delay_interval,
+    ))
+    .await;
 
     ws_tx
-      .send(Message::Text(ocpp_message_generator.boot_notification().to_string().into()))
+      .send(Message::Text(
+        ocpp_message_generator
+          .boot_notification()
+          .to_string()
+          .into(),
+      ))
       .await
       .unwrap();
 

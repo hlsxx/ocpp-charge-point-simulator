@@ -1,6 +1,8 @@
 use std::{fmt::Display, str::FromStr};
 
-use rust_ocpp::v1_6::types::{Location, Measurand, Phase, ReadingContext, UnitOfMeasure, ValueFormat};
+use rust_ocpp::v1_6::types::{
+  Location, Measurand, Phase, ReadingContext, UnitOfMeasure, ValueFormat,
+};
 use serde::{Deserialize, Serialize};
 
 pub struct DisplayMeasurand(pub Measurand);
@@ -10,7 +12,7 @@ pub struct DisplayPhase(pub Phase);
 pub struct DisplayLocation(pub Location);
 pub struct DisplayValueFormat(pub ValueFormat);
 
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use serde_json::{Value, json};
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -223,7 +225,7 @@ impl Display for DisplayUnitOfMeasure {
       UnitOfMeasure::Celsius => write!(f, "Celsius"),
       UnitOfMeasure::Fahrenheit => write!(f, "Fahrenheit"),
       UnitOfMeasure::K => write!(f, "K"),
-      UnitOfMeasure::Percent => write!(f, "Percent")
+      UnitOfMeasure::Percent => write!(f, "Percent"),
     }
   }
 }
@@ -267,7 +269,7 @@ impl Display for DisplayLocation {
       Location::Cable => write!(f, "Cable"),
       Location::Ev => write!(f, "EV"),
       Location::Inlet => write!(f, "Inlet"),
-      Location::Outlet => write!(f, "Outlet")
+      Location::Outlet => write!(f, "Outlet"),
     }
   }
 }
@@ -276,7 +278,7 @@ impl Display for DisplayValueFormat {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     match self.0 {
       ValueFormat::Raw => write!(f, "Raw"),
-      ValueFormat::SignedData => write!(f, "SignedData")
+      ValueFormat::SignedData => write!(f, "SignedData"),
     }
   }
 }

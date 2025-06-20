@@ -1,22 +1,20 @@
-use std::{
-  fmt::Debug,
-  str::FromStr
-};
+use std::{fmt::Debug, str::FromStr};
 
-use super::types::{OcppMessageFrame, OcppAction};
+use super::types::{OcppAction, OcppMessageFrame};
 use crate::ocpp::{messsage_handler::OcppMessageHandler, types::OcppMessageFrameType};
 use anyhow::Result;
 use async_trait::async_trait;
-use rust_ocpp::v1_6::{
-  messages::{
-    get_configuration::{GetConfigurationRequest, GetConfigurationResponse},
-  }
+use rust_ocpp::v1_6::messages::get_configuration::{
+  GetConfigurationRequest, GetConfigurationResponse,
 };
 
+use super::types::{
+  DisplayLocation, DisplayMeasurand, DisplayPhase, DisplayReadingContext, DisplayUnitOfMeasure,
+  DisplayValueFormat,
+};
 use serde::{Serialize, de::DeserializeOwned};
 use serde_json::{Value, json};
-use tracing::{debug, error, info, span, warn, Level, Span};
-use super::types::{DisplayMeasurand, DisplayUnitOfMeasure, DisplayReadingContext, DisplayPhase, DisplayLocation, DisplayValueFormat};
+use tracing::{Level, Span, debug, error, info, span, warn};
 
 pub struct MessageHandler {}
 
@@ -156,20 +154,13 @@ impl MessageHandler {
     }
   }
 
-  async fn handle_call_error(
-    &self,
-    msg_id: &str,
-  ) -> Result<Option<String>> {
+  async fn handle_call_error(&self, msg_id: &str) -> Result<Option<String>> {
     use OcppAction::*;
 
     Ok(None)
   }
 
-  async fn handle_call_result(
-    &self,
-    msg_id: &str,
-    payload: &Value,
-  ) -> Result<Option<String>> {
+  async fn handle_call_result(&self, msg_id: &str, payload: &Value) -> Result<Option<String>> {
     use OcppAction::*;
 
     Ok(None)

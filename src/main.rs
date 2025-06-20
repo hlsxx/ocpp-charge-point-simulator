@@ -1,7 +1,7 @@
+pub mod charger;
 pub mod config;
 pub mod ocpp;
 pub mod simulator;
-pub mod charger;
 
 use anyhow::Result;
 use config::Config;
