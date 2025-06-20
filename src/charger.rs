@@ -1,6 +1,6 @@
 use crate::{
   config::{ChargePointConfig, GeneralConfig},
-  ocpp::message_generator::{MessageGeneratorTrait, MessageGeneratorConfig},
+  ocpp::{message_generator::{MessageBuilderTrait, MessageGeneratorConfig, MessageGeneratorTrait}, messsage_handler::OcppMessageHandler},
 };
 
 use anyhow::Result;
@@ -24,9 +24,18 @@ use url::Url;
 
 use crate::{
   ocpp::types::OcppVersion,
-  ocpp::v1_6::{message_generator::MessageGenerator as Ocpp16MessageGenerator},
-  ocpp::v2_0_1::{message_generator::MessageGenerator as Ocpp201MessageGenerator},
-  // v2_1::{message::MessageGenerator as V2_1MessageGenerator, types::OcppAction},
+  ocpp::v1_6::{
+    message_generator::MessageGenerator as Ocpp16MessageGenerator,
+    message_handler::MessageHandler as Ocpp16MessageHandler
+  },
+  ocpp::v2_0_1::{
+    message_generator::MessageGenerator as Ocpp201MessageGenerator,
+    message_handler::MessageHandler as Ocpp201MessageHandler
+  },
+  ocpp::v2_1::{
+    message_generator::MessageGenerator as Ocpp21MessageGenerator,
+    message_handler::MessageHandler as Ocpp21MessageHandler
+  },
 };
 
 pub struct ChargerConfig {
@@ -150,10 +159,25 @@ impl Charger {
     let (ws_stream, _) = connect_async(request).await?;
     let (mut ws_tx, mut ws_rx) = ws_stream.split();
 
-    let message_generator: Box<dyn MessageGeneratorTrait> = match self.general_config.ocpp_version {
-      OcppVersion::V1_6 => Box::new(Ocpp16MessageGenerator::new(MessageGeneratorConfig::default())),
-      OcppVersion::V2_0_1 => Box::new(Ocpp201MessageGenerator::new(MessageGeneratorConfig::default())),
-      OcppVersion::V2_1 => Box::new(Ocpp201MessageGenerator::new(MessageGeneratorConfig::default())),
+    let (ocpp_message_generator, mut ocpp_message_handler): (Box<dyn MessageGeneratorTrait>, Box<dyn OcppMessageHandler>) = match self.general_config.ocpp_version {
+      OcppVersion::V1_6 => {
+        (
+          Box::new(Ocpp16MessageGenerator::new(MessageGeneratorConfig::default())),
+          Box::new(Ocpp16MessageHandler::new())
+        )
+      },
+      OcppVersion::V2_0_1 => {
+        (
+          Box::new(Ocpp201MessageGenerator::new(MessageGeneratorConfig::default())),
+          Box::new(Ocpp201MessageHandler::new())
+        )
+      },
+      OcppVersion::V2_1 => {
+        (
+          Box::new(Ocpp21MessageGenerator::new(MessageGeneratorConfig::default())),
+          Box::new(Ocpp21MessageHandler::new())
+        )
+      }
     };
 
     let mut heartbeat_interval = interval(Duration::from_secs(
@@ -173,7 +197,7 @@ impl Charger {
     let _ = sleep(Duration::from_millis(self.charge_point_config.boot_delay_interval)).await;
 
     ws_tx
-      .send(Message::Text(message_generator.boot_notification().to_string().into()))
+      .send(Message::Text(ocpp_message_generator.boot_notification().to_string().into()))
       .await
       .unwrap();
 
@@ -181,7 +205,7 @@ impl Charger {
       select! {
         _ = time::sleep_until(next_start_tx), if !transaction_active => {
           let _ = ws_tx.send(
-            Message::Text(message_generator.start_transaction().to_string().into())
+            Message::Text(ocpp_message_generator.start_transaction().to_string().into())
           ).await;
 
           stop_tx_deadline = Some(Instant::now() + Duration::from_secs(self.charge_point_config.stop_tx_after));
@@ -196,7 +220,7 @@ impl Charger {
           }
         }, if stop_tx_deadline.is_some() => {
           let _ = ws_tx.send(
-            Message::Text(message_generator.stop_transaction().to_string().into())
+            Message::Text(ocpp_message_generator.stop_transaction().to_string().into())
           ).await;
 
           transaction_active = false;
@@ -205,32 +229,27 @@ impl Charger {
         },
 
         _ = meter_values_interval.tick(), if transaction_active => {
-          let _ = ws_tx.send(Message::Text(message_generator.meter_values().to_string().into())).await;
+          let _ = ws_tx.send(Message::Text(ocpp_message_generator.meter_values().to_string().into())).await;
         },
 
         _ = heartbeat_interval.tick() => {
-          let _ = ws_tx.send(Message::Text(message_generator.heartbeat().to_string().into())).await;
+          let _ = ws_tx.send(Message::Text(ocpp_message_generator.heartbeat().to_string().into())).await;
         },
 
         _ = status_interval.tick() => {
-          let _ = ws_tx.send(Message::Text(message_generator.status_notification().to_string().into())).await;
+          let _ = ws_tx.send(Message::Text(ocpp_message_generator.status_notification().to_string().into())).await;
         },
 
         Some(msg) = ws_rx.next() => {
           match msg {
             Ok(Message::Text(text)) => {
               info!("Received: {}", text);
-              // if text.contains("GetConfiguration") {
-              //   let call_result = json!([
-              //     3,
-              //     "123456",
-              //     {
-              //       "configurationKey": []
-              //     }
-              //   ]);
-              //
-              //   info!("Responded to GetConfiguration");
-              // }
+
+              if let Some(response_message) = ocpp_message_handler.handle_text_message(&text).await? {
+                ws_tx
+                  .send(Message::Text(response_message.clone().into()))
+                  .await?;
+              }
             }
             Ok(Message::Close(_)) => {
               info!("CSMS closed connection");
