@@ -1,10 +1,6 @@
 pub mod config;
-pub mod message;
 pub mod ocpp;
 pub mod simulator;
-pub mod v1_6;
-pub mod v2_0_1;
-pub mod v2_1;
 pub mod charger;
 
 use anyhow::Result;

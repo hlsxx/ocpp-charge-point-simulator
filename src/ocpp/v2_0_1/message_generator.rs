@@ -24,8 +24,7 @@ use rust_ocpp::v2_0_1::datatypes::id_token_type::IdTokenType;
 use serde::Serialize;
 use serde_json::{Value, json};
 
-use crate::message::{MessageGeneratorConfig, MessageGeneratorTrait};
-use crate::ocpp::OcppActionType;
+use crate::ocpp::message_generator::{MessageBuilderTrait, MessageGeneratorConfig, MessageGeneratorTrait};
 use uuid::Uuid;
 
 use super::types::OcppAction;

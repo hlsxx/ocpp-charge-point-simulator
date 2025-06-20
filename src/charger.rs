@@ -1,6 +1,6 @@
 use crate::{
   config::{ChargePointConfig, GeneralConfig},
-  message::{MessageGeneratorTrait, MessageGeneratorConfig},
+  ocpp::message_generator::{MessageGeneratorTrait, MessageGeneratorConfig},
 };
 
 use anyhow::Result;
@@ -23,9 +23,9 @@ use tungstenite::{
 use url::Url;
 
 use crate::{
-  ocpp::OcppVersion,
-  v1_6::{message::MessageGenerator as Ocpp16MessageGenerator},
-  v2_0_1::{message::MessageGenerator as Ocpp201MessageGenerator},
+  ocpp::types::OcppVersion,
+  ocpp::v1_6::{message_generator::MessageGenerator as Ocpp16MessageGenerator},
+  ocpp::v2_0_1::{message_generator::MessageGenerator as Ocpp201MessageGenerator},
   // v2_1::{message::MessageGenerator as V2_1MessageGenerator, types::OcppAction},
 };
 
@@ -188,13 +188,13 @@ impl Charger {
           transaction_active = true;
         },
 
-          _ = async {
-            if let Some(deadline) = stop_tx_deadline {
-              time::sleep_until(deadline).await;
-            } else {
-              futures::future::pending::<()>().await;
-            }
-          }, if stop_tx_deadline.is_some() => {
+        _ = async {
+          if let Some(deadline) = stop_tx_deadline {
+            time::sleep_until(deadline).await;
+          } else {
+            futures::future::pending::<()>().await;
+          }
+        }, if stop_tx_deadline.is_some() => {
           let _ = ws_tx.send(
             Message::Text(message_generator.stop_transaction().to_string().into())
           ).await;

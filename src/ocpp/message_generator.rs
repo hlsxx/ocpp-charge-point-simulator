@@ -1,8 +1,4 @@
-use serde::Serialize;
 use serde_json::{json, Value};
-use uuid::Uuid;
-
-use crate::ocpp::OcppActionType;
 
 pub trait MessageBuilderTrait {
   fn to_call_frame(&self) -> Value;

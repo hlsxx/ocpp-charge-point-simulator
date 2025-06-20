@@ -3,7 +3,7 @@ use std::fs;
 use anyhow::Result;
 use serde::Deserialize;
 
-use crate::ocpp::OcppVersion;
+use crate::ocpp::types::OcppVersion;
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct ImplicitChargePointConfig {

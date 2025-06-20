@@ -17,9 +17,9 @@ use rust_ocpp::v1_6::types::FirmwareStatus;
 use serde::Serialize;
 use serde_json::{Value, json};
 
-use crate::message::{MessageBuilderTrait, MessageGeneratorConfig, MessageGeneratorTrait};
-use crate::ocpp::OcppActionType;
 use uuid::Uuid;
+
+use crate::ocpp::message_generator::{MessageBuilderTrait, MessageGeneratorConfig, MessageGeneratorTrait};
 
 use super::types::OcppAction;
 

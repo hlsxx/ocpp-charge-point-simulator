@@ -1,4 +1,4 @@
-use std::fmt::{write, Display};
+use std::fmt::Display;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Deserialize)]
@@ -25,9 +25,9 @@ impl Display for OcppVersion {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum OcppActionType {
-  V1_6(crate::v1_6::types::OcppAction),
-  V2_0_1(crate::v2_0_1::types::OcppAction),
-  V2_1(crate::v2_1::types::OcppAction),
+  V1_6(super::v1_6::types::OcppAction),
+  V2_0_1(super::v2_0_1::types::OcppAction),
+  V2_1(super::v2_1::types::OcppAction),
 }
 
 impl Display for OcppActionType {
