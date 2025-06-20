@@ -14,6 +14,7 @@ pub struct ImplicitChargePointConfig {
   pub status_interval_range: [u64; 2],
   pub start_tx_after_range: [u64; 2],
   pub stop_tx_after_range: [u64; 2],
+  pub id_tags: Vec<String>
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -31,6 +32,7 @@ pub struct ChargePointConfig {
   pub status_interval: u64,
   pub start_tx_after: u64,
   pub stop_tx_after: u64,
+  pub id_tags: Vec<String>
 }
 
 #[derive(Debug, Deserialize, Clone)]
