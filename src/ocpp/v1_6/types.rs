@@ -1,11 +1,11 @@
 use std::str::FromStr;
+use std::fmt::Display;
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-#[derive(Debug, Serialize)]
-// #[serde(untagged)]
-pub enum OcppMessage {
+#[derive(Debug, Serialize, Deserialize)]
+pub enum OcppMessageFrame {
   Call {
     msg_id: String,
     action: OcppAction,

@@ -5,7 +5,7 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "messageTypeId", rename_all = "camelCase")]
-pub enum OcppMessage {
+pub enum OcppMessageFrame {
   #[serde(rename_all = "camelCase")]
   Call {
     message_id: String,

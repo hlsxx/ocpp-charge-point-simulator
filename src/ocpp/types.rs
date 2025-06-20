@@ -24,21 +24,21 @@ impl Display for OcppVersion {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub enum OcppActionType {
-  V1_6(super::v1_6::types::OcppAction),
-  V2_0_1(super::v2_0_1::types::OcppAction),
-  V2_1(super::v2_1::types::OcppAction),
+pub enum OcppMessageFrameType {
+  V1_6(super::v1_6::types::OcppMessageFrame),
+  V2_0_1(super::v2_0_1::types::OcppMessageFrame),
+  V2_1(super::v2_1::types::OcppMessageFrame),
 }
 
-impl Display for OcppActionType {
-  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    match self {
-      OcppActionType::V1_6(action) => write!(f, "{}", action),
-      OcppActionType::V2_0_1(action) => write!(f, "{}", action),
-      OcppActionType::V2_1(action) => write!(f, "{}", action),
-    }
-  }
-}
+// impl Display for OcppMessageFrameType {
+//   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+//     match self {
+//       OcppMessageFrameType::V1_6(action) => write!(f, "{}", action),
+//       OcppMessageFrameType::V2_0_1(action) => write!(f, "{}", action),
+//       OcppMessageFrameType::V2_1(action) => write!(f, "{}", action),
+//     }
+//   }
+// }
 
 impl OcppVersion {
   pub const HEADER_V1_6: &'static str = "ocpp1.6";
