@@ -6,7 +6,7 @@ use tokio::task::JoinHandle;
 use tracing::info;
 
 use crate::{
-  charger::Charger,
+  cp::ChargePoint,
   config::{ChargePointConfig, Config, ImplicitChargePointConfig},
 };
 
@@ -31,19 +31,19 @@ impl Simulator {
 
     let mut handles: Vec<JoinHandle<()>> = Vec::new();
 
-    let mut all_charge_points = self.config.charge_points.clone();
+    let mut all_cps = self.config.charge_points.clone();
 
-    if let Some(implicit_charge_points) = &self.config.implicit_charge_points {
-      let generated = Self::generate_implicit_charge_points(&implicit_charge_points);
-      all_charge_points.extend(generated);
+    if let Some(implicit_cps) = &self.config.implicit_charge_points {
+      let generated = Self::generate_implicit_cps(&implicit_cps);
+      all_cps.extend(generated);
     }
 
     let general_config = Arc::new(self.config.general.clone());
-    for charge_point_config in all_charge_points {
+    for cp_config in all_cps {
       let general_config_clone = general_config.clone();
 
       let handle = tokio::spawn(async move {
-        let mut charger = Charger::new(general_config_clone, charge_point_config);
+        let mut charger = ChargePoint::new(general_config_clone, cp_config);
 
         if let Err(e) = charger.run().await {
           eprintln!("Client failed: {:?}", e);
@@ -59,7 +59,7 @@ impl Simulator {
   }
 
   /// Generates implicit charge points from the config file.
-  fn generate_implicit_charge_points(cfg: &ImplicitChargePointConfig) -> Vec<ChargePointConfig> {
+  fn generate_implicit_cps(cfg: &ImplicitChargePointConfig) -> Vec<ChargePointConfig> {
     (0..cfg.count)
       .map(|i| ChargePointConfig {
         id: format!("{}{:06}", cfg.prefix, i),

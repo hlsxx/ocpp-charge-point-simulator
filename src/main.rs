@@ -1,4 +1,4 @@
-pub mod charger;
+pub mod cp;
 pub mod config;
 pub mod ocpp;
 pub mod simulator;
