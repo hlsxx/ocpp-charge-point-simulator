@@ -1,3 +1,4 @@
+use std::fmt::Debug;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use rust_ocpp::v1_6::messages::heart_beat::HeartbeatResponse;
@@ -17,6 +18,7 @@ use rust_ocpp::v1_6::types::FirmwareStatus;
 use serde::Serialize;
 use serde_json::{Value, json};
 
+use tracing::{debug, info};
 use uuid::Uuid;
 
 use crate::ocpp::message_generator::{
@@ -36,7 +38,10 @@ struct FrameBuilder {
 }
 
 impl FrameBuilder {
-  fn build_call<T: Serialize>(ocpp_action: OcppAction, payload: T) -> Value {
+  fn build_call<T: Serialize + Debug>(ocpp_action: OcppAction, payload: T) -> Value {
+    info!("🔌 [🔵 Call] {}",  ocpp_action);
+    debug!(action = %ocpp_action, ?payload);
+
     // let id = self.next_id();
     json!([2, Uuid::new_v4(), ocpp_action, payload])
   }

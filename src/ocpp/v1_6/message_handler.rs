@@ -8,10 +8,6 @@ use rust_ocpp::v1_6::messages::get_configuration::{
   GetConfigurationRequest, GetConfigurationResponse,
 };
 
-use super::types::{
-  DisplayLocation, DisplayMeasurand, DisplayPhase, DisplayReadingContext, DisplayUnitOfMeasure,
-  DisplayValueFormat,
-};
 use serde::{Serialize, de::DeserializeOwned};
 use serde_json::{Value, json};
 use tracing::{Level, Span, debug, error, info, span, warn};

@@ -12,7 +12,6 @@ use futures_util::{SinkExt, StreamExt};
 use std::sync::Arc;
 use tokio::{
   select,
-  sync::Mutex,
   time::{self, Duration, Instant, interval, sleep},
 };
 use tokio_tungstenite::connect_async;
@@ -25,7 +24,6 @@ use tungstenite::{
     CONNECTION, HOST, SEC_WEBSOCKET_KEY, SEC_WEBSOCKET_PROTOCOL, SEC_WEBSOCKET_VERSION, UPGRADE,
   },
 };
-use url::Url;
 
 use crate::{
   ocpp::types::OcppVersion,
