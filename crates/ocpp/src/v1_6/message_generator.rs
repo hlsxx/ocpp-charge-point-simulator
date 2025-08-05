@@ -21,7 +21,7 @@ use serde_json::{Value, json};
 use tracing::{debug, info};
 use uuid::Uuid;
 
-use crate::ocpp::message_generator::{
+use crate::message_generator::{
   MessageBuilderTrait, MessageGeneratorConfig, MessageGeneratorTrait,
 };
 

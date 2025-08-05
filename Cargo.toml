@@ -1,25 +1,7 @@
-[package]
-name = "ocpp-charge-point-simulator"
-version = "0.0.1"
-edition = "2024"
-
-[dependencies]
-tokio = { version = "1.45.0", features = ["full"] }
-tokio-tungstenite = "0.26.2"
-tungstenite = "0.26.2"
-serde = { version = "1.0.219", features = ["derive"] }
-serde_json = "1.0.140"
-uuid = { version = "1.16.0", features = ["v4", "serde"] }
-rust-ocpp = { version = "3.0.1", features = ["v2_0_1", "v1_6"] }
-tracing-subscriber = "0.3.19"
-tracing = "0.1.41"
-dotenvy = "0.15.7"
-url = "2.5.4"
-anyhow = "1.0.98"
-futures-util = "0.3.31"
-chrono = "0.4.41"
-colored = "3.0.0"
-rand = "0.9.1"
-toml = "0.8.22"
-futures = "0.3.31"
-async-trait = "0.1.88"
+[workspace]
+members = [
+  "app",
+  "crates/ocpp",
+  "crates/cp",
+  "crates/simulator"
+]

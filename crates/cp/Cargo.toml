@@ -1,0 +1,17 @@
+[package]
+name = "cp"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+ocpp = { path = "../ocpp" }
+
+url = "2.5.4"
+rand = "0.9.1"
+futures-util = "0.3.31"
+colored = "3.0.0"
+anyhow = "1.0.98"
+tokio = { version = "1.45.0", features = ["full"] }
+tokio-tungstenite = "0.26.2"
+tungstenite = "0.26.2"
+tracing = "0.1.41"
