@@ -22,7 +22,7 @@ use rust_ocpp::v2_0_1::enumerations::boot_reason_enum_type::BootReasonEnumType;
 use serde::Serialize;
 use serde_json::{Value, json};
 
-use crate::ocpp::message_generator::{
+use crate::message_generator::{
   MessageBuilderTrait, MessageGeneratorConfig, MessageGeneratorTrait,
 };
 use uuid::Uuid;

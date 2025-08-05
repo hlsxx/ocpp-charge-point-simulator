@@ -1,4 +1,4 @@
-use crate::ocpp::{messsage_handler::OcppMessageHandler, types::OcppMessageFrameType};
+use crate::messsage_handler::{OcppMessageFrameType, OcppMessageHandler};
 use anyhow::Result;
 use async_trait::async_trait;
 pub struct MessageHandler {}

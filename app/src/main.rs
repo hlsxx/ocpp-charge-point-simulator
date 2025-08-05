@@ -1,12 +1,9 @@
-pub mod cp;
-pub mod config;
-pub mod ocpp;
 pub mod simulator;
 
 use anyhow::Result;
-use config::Config;
 use simulator::Simulator;
 use tracing::Level;
+use common::Config;
 
 #[tokio::main]
 async fn main() -> Result<()> {

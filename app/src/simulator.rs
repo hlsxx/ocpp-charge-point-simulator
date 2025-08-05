@@ -5,8 +5,9 @@ use futures_util::future::join_all;
 use tokio::task::JoinHandle;
 use tracing::info;
 
+use cp::ChargePoint;
+
 use crate::{
-  cp::ChargePoint,
   config::{ChargePointConfig, Config, ImplicitChargePointConfig},
 };
 

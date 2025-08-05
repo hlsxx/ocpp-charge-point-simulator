@@ -1,7 +1,7 @@
 use std::{fmt::Debug, str::FromStr};
 
-use super::types::{OcppAction, OcppMessageFrame};
-use crate::ocpp::{messsage_handler::OcppMessageHandler, types::OcppMessageFrameType};
+use super::types::OcppAction;
+use crate::messsage_handler::{OcppMessageFrame, OcppMessageFrameType, OcppMessageHandler};
 use anyhow::Result;
 use async_trait::async_trait;
 use rust_ocpp::v1_6::messages::get_configuration::{

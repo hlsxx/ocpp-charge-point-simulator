@@ -3,5 +3,6 @@ members = [
   "app",
   "crates/ocpp",
   "crates/cp",
-  "crates/simulator"
+  "crates/simulator",
+  "crates/common"
 ]
