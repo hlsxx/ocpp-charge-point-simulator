@@ -7,9 +7,7 @@ use tracing::info;
 
 use cp::ChargePoint;
 
-use crate::{
-  config::{ChargePointConfig, Config, ImplicitChargePointConfig},
-};
+use common::{ChargePointConfig, Config, ImplicitChargePointConfig};
 
 use colored::Colorize;
 

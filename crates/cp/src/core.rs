@@ -1,6 +1,4 @@
-use crate::{
-  config::{ChargePointConfig, GeneralConfig}
-};
+use common::{ChargePointConfig, GeneralConfig, OcppVersion};
 
 use ocpp::{
   message_generator::{MessageBuilderTrait, MessageGeneratorConfig, MessageGeneratorTrait},
@@ -26,20 +24,17 @@ use tungstenite::{
   },
 };
 
-use crate::{
-  ocpp::types::OcppVersion,
-  ocpp::v1_6::{
-    message_generator::MessageGenerator as Ocpp16MessageGenerator,
-    message_handler::MessageHandler as Ocpp16MessageHandler,
-  },
-  ocpp::v2_0_1::{
-    message_generator::MessageGenerator as Ocpp201MessageGenerator,
-    message_handler::MessageHandler as Ocpp201MessageHandler,
-  },
-  ocpp::v2_1::{
-    message_generator::MessageGenerator as Ocpp21MessageGenerator,
-    message_handler::MessageHandler as Ocpp21MessageHandler,
-  },
+use ocpp::v1_6::{
+  message_generator::MessageGenerator as Ocpp16MessageGenerator,
+  message_handler::MessageHandler as Ocpp16MessageHandler,
+};
+use ocpp::v2_0_1::{
+  message_generator::MessageGenerator as Ocpp201MessageGenerator,
+  message_handler::MessageHandler as Ocpp201MessageHandler,
+};
+use ocpp::v2_1::{
+  message_generator::MessageGenerator as Ocpp21MessageGenerator,
+  message_handler::MessageHandler as Ocpp21MessageHandler,
 };
 
 pub struct ChargePoint {

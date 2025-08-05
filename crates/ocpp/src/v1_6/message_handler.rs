@@ -112,7 +112,7 @@ impl MessageHandler {
     let request: Req = serde_json::from_value(payload)?;
     let response = make_response(request).await?;
 
-    let ocpp_message = OcppMessageFrame::CallResult {
+    let ocpp_message = OcppMessageFrame::<OcppAction>::CallResult {
       msg_id: msg_id.to_string(),
       payload: serde_json::to_value(&response)?,
     };
