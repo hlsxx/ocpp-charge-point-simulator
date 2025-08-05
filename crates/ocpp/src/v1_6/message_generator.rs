@@ -11,7 +11,7 @@ use rust_ocpp::v1_6::messages::{
   status_notification::StatusNotificationRequest, stop_transaction::StopTransactionRequest,
 };
 
-use rust_ocpp::v1_6::types::ChargePointErrorCode;
+use rust_ocpp::v1_6::types::{ChargePointErrorCode, MeterValue};
 use rust_ocpp::v1_6::types::ChargePointStatus;
 use rust_ocpp::v1_6::types::DiagnosticsStatus;
 use rust_ocpp::v1_6::types::FirmwareStatus;
@@ -24,6 +24,7 @@ use uuid::Uuid;
 use crate::message_generator::{
   MessageBuilderTrait, MessageGeneratorConfig, MessageGeneratorTrait,
 };
+use crate::mock_data::MockData;
 
 use super::types::OcppAction;
 
@@ -137,8 +138,8 @@ impl MessageGeneratorTrait for MessageGenerator {
       OcppAction::MeterValues,
       MeterValuesRequest {
         connector_id: 1,
-        meter_value: vec![],
-        transaction_id: Some(1),
+        meter_value: vec![MeterValue::mock_data()],
+        transaction_id: Some(999),
       },
     )
   }

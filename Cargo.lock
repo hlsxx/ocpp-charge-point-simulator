@@ -796,6 +796,7 @@ dependencies = [
  "anyhow",
  "async-trait",
  "chrono",
+ "rand 0.9.2",
  "rust-ocpp",
  "serde",
  "serde_json",
