@@ -1,9 +1,9 @@
 pub mod simulator;
 
 use anyhow::Result;
+use common::Config;
 use simulator::Simulator;
 use tracing::Level;
-use common::Config;
 
 #[tokio::main]
 async fn main() -> Result<()> {

@@ -1,4 +1,4 @@
-use common::{SharedData, ChargePointConfig, GeneralConfig, OcppVersion};
+use common::{ChargePointConfig, GeneralConfig, OcppVersion, SharedData};
 
 use ocpp::{
   message_generator::{MessageGeneratorConfig, MessageGeneratorTrait},
@@ -53,7 +53,7 @@ impl ChargePoint {
   pub async fn run(&mut self) -> Result<()> {
     let connection_url = format!(
       "{}/{}",
-      self.general_config.server_url.to_string(),
+      self.general_config.server_url,
       self.charge_point_config.id
     );
 
@@ -65,7 +65,7 @@ impl ChargePoint {
       .header(HOST, connection_url)
       .header(
         SEC_WEBSOCKET_PROTOCOL,
-        &self.general_config.ocpp_version.to_string(),
+        self.general_config.ocpp_version.to_string(),
       )
       .header(CONNECTION, "Upgrade")
       .header(UPGRADE, "Websocket")

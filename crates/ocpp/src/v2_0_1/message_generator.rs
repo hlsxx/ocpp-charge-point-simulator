@@ -23,10 +23,10 @@ use rust_ocpp::v2_0_1::enumerations::boot_reason_enum_type::BootReasonEnumType;
 use serde::Serialize;
 use serde_json::{Value, json};
 
+use super::types::OcppAction;
 use crate::message_generator::{
   MessageBuilderTrait, MessageGeneratorConfig, MessageGeneratorTrait,
 };
-use super::types::OcppAction;
 use uuid::Uuid;
 
 pub struct MessageGenerator {
@@ -34,10 +34,7 @@ pub struct MessageGenerator {
   id_counter: AtomicUsize,
 }
 
-struct FrameBuilder {
-  ocpp_action: OcppAction,
-  payload: Value,
-}
+struct FrameBuilder;
 
 impl FrameBuilder {
   pub fn build_call<T: Serialize>(action: impl ToString, payload: T) -> Value {
@@ -49,6 +46,7 @@ impl FrameBuilder {
     })
   }
 
+  #[allow(unused)]
   pub fn build_call_result<T: Serialize>(message_id: &str, payload: T) -> Value {
     json!({
       "messageTypeId": 3,
@@ -57,6 +55,7 @@ impl FrameBuilder {
     })
   }
 
+  #[allow(unused)]
   pub fn build_call_error(
     message_id: &str,
     error_code: &str,
@@ -87,8 +86,7 @@ impl MessageGeneratorTrait for MessageGenerator {
           vendor_name: self.config.vendor.clone(),
           firmware_version: Some("1.2.3".to_string()),
           ..Default::default()
-        },
-        ..Default::default()
+        }
       },
     )
   }
@@ -152,9 +150,8 @@ impl MessageGeneratorTrait for MessageGenerator {
         timestamp: Utc::now(),
         evse_id: 1,
         connector_id: 1,
-        connector_status: ConnectorStatusEnumType::Available,
-        ..Default::default()
-      },
+        connector_status: ConnectorStatusEnumType::Available
+      }
     )
   }
 

@@ -33,7 +33,7 @@ impl Simulator {
     let mut all_cps = self.config.charge_points.clone();
 
     if let Some(implicit_cps) = &self.config.implicit_charge_points {
-      let generated = Self::generate_implicit_cps(&implicit_cps);
+      let generated = Self::generate_implicit_cps(implicit_cps);
       all_cps.extend(generated);
     }
 

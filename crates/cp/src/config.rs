@@ -20,6 +20,7 @@ impl Default for CpConfig {
   }
 }
 
+#[derive(Default)]
 pub struct CpConfigBuilder {
   csms_url: Option<Url>,
   charge_point_id: Option<String>,
@@ -29,16 +30,6 @@ pub struct CpConfigBuilder {
 }
 
 impl CpConfigBuilder {
-  pub fn new() -> Self {
-    Self {
-      csms_url: None,
-      charge_point_id: None,
-      serial_number: None,
-      vendor: None,
-      model: None,
-    }
-  }
-
   pub fn csms_url(mut self, url_string: impl Into<String>) -> Self {
     if let Ok(url) = Url::parse(&url_string.into()) {
       self.csms_url = Some(url);

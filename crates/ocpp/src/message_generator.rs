@@ -39,6 +39,7 @@ impl Default for MessageGeneratorConfig {
   }
 }
 
+#[derive(Default)]
 pub struct MessageGeneratorConfigBuilder {
   serial_number: Option<String>,
   vendor: Option<String>,
@@ -47,15 +48,6 @@ pub struct MessageGeneratorConfigBuilder {
 }
 
 impl MessageGeneratorConfigBuilder {
-  pub fn new() -> Self {
-    Self {
-      serial_number: None,
-      vendor: None,
-      model: None,
-      id_tag: None,
-    }
-  }
-
   pub fn serial_number(mut self, id: impl Into<String>) -> Self {
     self.serial_number = Some(id.into());
     self

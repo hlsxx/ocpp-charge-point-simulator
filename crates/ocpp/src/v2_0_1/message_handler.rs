@@ -3,6 +3,7 @@ use anyhow::Result;
 use async_trait::async_trait;
 pub struct MessageHandler {}
 
+#[allow(clippy::new_without_default)]
 impl MessageHandler {
   pub fn new() -> Self {
     Self {}

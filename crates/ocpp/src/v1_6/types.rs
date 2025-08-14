@@ -1,7 +1,7 @@
 use std::str::FromStr;
 
-use serde::Serialize;
 use anyhow::Result;
+use serde::Serialize;
 
 #[derive(Debug, Serialize, Clone)]
 pub enum OcppAction {

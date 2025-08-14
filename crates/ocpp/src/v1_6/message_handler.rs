@@ -5,16 +5,17 @@ use crate::messsage_handler::{OcppMessageFrame, OcppMessageFrameType, OcppMessag
 use anyhow::Result;
 use async_trait::async_trait;
 use common::SharedData;
-use rust_ocpp::v1_6::messages::{get_configuration::{
-  GetConfigurationRequest, GetConfigurationResponse,
-}, start_transaction::StartTransactionResponse};
+use rust_ocpp::v1_6::messages::{
+  get_configuration::{GetConfigurationRequest, GetConfigurationResponse},
+  start_transaction::StartTransactionResponse,
+};
 
 use serde::{Serialize, de::DeserializeOwned};
 use serde_json::Value;
 use tracing::{debug, info};
 
 pub struct MessageHandler {
-  shared_data: SharedData<OcppAction>
+  shared_data: SharedData<OcppAction>,
 }
 
 impl MessageHandler {
@@ -161,17 +162,15 @@ impl MessageHandler {
     let ocpp_action = self.shared_data.get_msg(msg_id).await;
 
     match ocpp_action {
-      Some(ocpp_action) => {
-        match ocpp_action {
-          OcppAction::StartTransaction => {
-            let res: StartTransactionResponse = serde_json::from_value(payload.clone())?;
-            self.shared_data.transaction_id(res.transaction_id).await;
-            Ok(None)
-          },
-          _ => Ok(None)
+      Some(ocpp_action) => match ocpp_action {
+        OcppAction::StartTransaction => {
+          let res: StartTransactionResponse = serde_json::from_value(payload.clone())?;
+          self.shared_data.transaction_id(res.transaction_id).await;
+          Ok(None)
         }
+        _ => Ok(None),
       },
-      None => anyhow::bail!("msg_id not found")
+      None => anyhow::bail!("msg_id not found"),
     }
   }
 }
