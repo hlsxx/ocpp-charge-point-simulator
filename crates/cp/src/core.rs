@@ -138,6 +138,9 @@ impl ChargePoint {
             Message::Text(ocpp_message_generator.start_transaction().await.to_string().into())
           ).await;
 
+          // TODO: This is timeout for assign transaction_id from the CSMS call result
+          tokio::time::sleep(Duration::from_secs(5)).await;
+
           stop_tx_deadline = Some(Instant::now() + Duration::from_secs(self.charge_point_config.stop_tx_after));
           transaction_active = true;
         },

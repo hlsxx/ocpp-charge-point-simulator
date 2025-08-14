@@ -4,27 +4,27 @@ use super::types::OcppAction;
 use crate::messsage_handler::{OcppMessageFrame, OcppMessageFrameType, OcppMessageHandler};
 use anyhow::Result;
 use async_trait::async_trait;
-use common::{shared_data::SharedDataValue, SharedData};
-use rust_ocpp::v1_6::messages::get_configuration::{
+use common::SharedData;
+use rust_ocpp::v1_6::messages::{get_configuration::{
   GetConfigurationRequest, GetConfigurationResponse,
-};
+}, start_transaction::StartTransactionResponse};
 
 use serde::{Serialize, de::DeserializeOwned};
 use serde_json::Value;
 use tracing::{debug, info};
 
-pub struct MessageHandler<A: SharedDataValue> {
-  shared_data: SharedData<A>
+pub struct MessageHandler {
+  shared_data: SharedData<OcppAction>
 }
 
-impl<A: SharedDataValue> MessageHandler<A> {
-  pub fn new(shared_data: SharedData<A>) -> Self {
+impl MessageHandler {
+  pub fn new(shared_data: SharedData<OcppAction>) -> Self {
     Self { shared_data }
   }
 }
 
 #[async_trait]
-impl<A: SharedDataValue> OcppMessageHandler for MessageHandler<A> {
+impl OcppMessageHandler for MessageHandler {
   fn parse_ocpp_message(&self, text: &str) -> Result<OcppMessageFrameType> {
     let arr: Vec<Value> = serde_json::from_str(&text)?;
 
@@ -100,7 +100,7 @@ impl<A: SharedDataValue> OcppMessageHandler for MessageHandler<A> {
   }
 }
 
-impl<A: SharedDataValue> MessageHandler<A> {
+impl MessageHandler {
   async fn handle_ocpp_request<Req, Res, F, Fut>(
     msg_id: &str,
     payload: Value,
@@ -153,17 +153,25 @@ impl<A: SharedDataValue> MessageHandler<A> {
     }
   }
 
-  async fn handle_call_error(&self, msg_id: &str) -> Result<Option<String>> {
-    use OcppAction::*;
-
+  async fn handle_call_error(&self, _msg_id: &str) -> Result<Option<String>> {
     Ok(None)
   }
 
   async fn handle_call_result(&self, msg_id: &str, payload: &Value) -> Result<Option<String>> {
-    println!("Got message");
-    println!("{:?}", payload);
-    use OcppAction::*;
+    let ocpp_action = self.shared_data.get_msg(msg_id).await;
 
-    Ok(None)
+    match ocpp_action {
+      Some(ocpp_action) => {
+        match ocpp_action {
+          OcppAction::StartTransaction => {
+            let res: StartTransactionResponse = serde_json::from_value(payload.clone())?;
+            self.shared_data.transaction_id(res.transaction_id).await;
+            Ok(None)
+          },
+          _ => Ok(None)
+        }
+      },
+      None => anyhow::bail!("msg_id not found")
+    }
   }
 }

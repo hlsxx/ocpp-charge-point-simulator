@@ -234,7 +234,6 @@ dependencies = [
  "serde_json",
  "tokio",
  "toml",
- "uuid",
 ]
 
 [[package]]

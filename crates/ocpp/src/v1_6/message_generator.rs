@@ -2,9 +2,7 @@ use std::fmt::Debug;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use async_trait::async_trait;
-use common::shared_data::SharedDataValue;
 use common::SharedData;
-use rust_ocpp::v1_6::messages::heart_beat::HeartbeatResponse;
 use rust_ocpp::v1_6::messages::{
   authorize::AuthorizeRequest, boot_notification::BootNotificationRequest,
   data_transfer::DataTransferRequest,
@@ -43,7 +41,7 @@ impl FrameBuilder {
 
     // let msg_id = self.next_id();
     let msg_id = Uuid::new_v4();
-    shared_data.insert_msg(&msg_id, ocpp_action.clone()).await;
+    shared_data.insert_msg(&msg_id.to_string(), ocpp_action.clone()).await;
 
     json!([2, msg_id, ocpp_action, payload])
   }
@@ -122,7 +120,8 @@ impl MessageGeneratorTrait for MessageGenerator {
         meter_stop: 10,
         timestamp: chrono::Utc::now(),
         id_tag: Some(self.config.id_tag.clone()),
-        transaction_id: 1,
+        // TODO: unwrap
+        transaction_id: self.shared_data.get_transaction_id().await.unwrap_or(1),
         ..Default::default()
       },
     ).await
@@ -147,7 +146,7 @@ impl MessageGeneratorTrait for MessageGenerator {
       MeterValuesRequest {
         connector_id: 1,
         meter_value: vec![MeterValue::mock_data()],
-        transaction_id: Some(999),
+        transaction_id: self.shared_data.get_transaction_id().await,
       },
     ).await
   }
