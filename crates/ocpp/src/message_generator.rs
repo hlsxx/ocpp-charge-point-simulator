@@ -1,4 +1,4 @@
-use serde_json::{Value, json};
+use serde_json::Value;
 
 pub trait MessageBuilderTrait {
   fn to_call_frame(&self) -> Value;

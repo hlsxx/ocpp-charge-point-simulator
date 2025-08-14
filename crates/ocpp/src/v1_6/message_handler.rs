@@ -4,24 +4,27 @@ use super::types::OcppAction;
 use crate::messsage_handler::{OcppMessageFrame, OcppMessageFrameType, OcppMessageHandler};
 use anyhow::Result;
 use async_trait::async_trait;
+use common::SharedData;
 use rust_ocpp::v1_6::messages::get_configuration::{
   GetConfigurationRequest, GetConfigurationResponse,
 };
 
 use serde::{Serialize, de::DeserializeOwned};
-use serde_json::{Value, json};
-use tracing::{Level, Span, debug, error, info, span, warn};
+use serde_json::Value;
+use tracing::{debug, info};
 
-pub struct MessageHandler {}
+pub struct MessageHandler<A: Send + Sync> {
+  shared_data: SharedData<A>
+}
 
-impl MessageHandler {
-  pub fn new() -> Self {
-    Self {}
+impl<A: Send + Sync> MessageHandler<A> {
+  pub fn new(shared_data: SharedData<A>) -> Self {
+    Self { shared_data }
   }
 }
 
 #[async_trait]
-impl OcppMessageHandler for MessageHandler {
+impl<A: Send + Sync> OcppMessageHandler for MessageHandler<A> {
   fn parse_ocpp_message(&self, text: &str) -> Result<OcppMessageFrameType> {
     let arr: Vec<Value> = serde_json::from_str(&text)?;
 
@@ -97,7 +100,7 @@ impl OcppMessageHandler for MessageHandler {
   }
 }
 
-impl MessageHandler {
+impl<A: Send + Sync> MessageHandler<A> {
   async fn handle_ocpp_request<Req, Res, F, Fut>(
     msg_id: &str,
     payload: Value,
@@ -157,6 +160,8 @@ impl MessageHandler {
   }
 
   async fn handle_call_result(&self, msg_id: &str, payload: &Value) -> Result<Option<String>> {
+    println!("Got message");
+    println!("{:?}", payload);
     use OcppAction::*;
 
     Ok(None)

@@ -1,7 +1,7 @@
-use common::{ChargePointConfig, GeneralConfig, OcppVersion};
+use common::{SharedData, ChargePointConfig, GeneralConfig, OcppVersion};
 
 use ocpp::{
-  message_generator::{MessageBuilderTrait, MessageGeneratorConfig, MessageGeneratorTrait},
+  message_generator::{MessageGeneratorConfig, MessageGeneratorTrait},
   messsage_handler::OcppMessageHandler,
 };
 
@@ -15,7 +15,7 @@ use tokio::{
 };
 use tokio_tungstenite::connect_async;
 use tokio_tungstenite::tungstenite::http::Request;
-use tracing::{debug, error, info};
+use tracing::{error, info};
 use tungstenite::{
   Message,
   handshake::client::generate_key,
@@ -77,26 +77,25 @@ impl ChargePoint {
     let (ws_stream, _) = connect_async(request).await?;
     let (mut ws_tx, mut ws_rx) = ws_stream.split();
 
+    let config = MessageGeneratorConfig::default();
+
     let (ocpp_message_generator, mut ocpp_message_handler): (
       Box<dyn MessageGeneratorTrait>,
       Box<dyn OcppMessageHandler>,
     ) = match self.general_config.ocpp_version {
-      OcppVersion::V1_6 => (
-        Box::new(Ocpp16MessageGenerator::new(
-          MessageGeneratorConfig::default(),
-        )),
-        Box::new(Ocpp16MessageHandler::new()),
-      ),
+      OcppVersion::V1_6 => {
+        let shared_data = SharedData::<ocpp::v1_6::types::OcppAction>::new();
+        (
+          Box::new(Ocpp16MessageGenerator::new(config, shared_data.clone())),
+          Box::new(Ocpp16MessageHandler::new(shared_data.clone())),
+        )
+      }
       OcppVersion::V2_0_1 => (
-        Box::new(Ocpp201MessageGenerator::new(
-          MessageGeneratorConfig::default(),
-        )),
+        Box::new(Ocpp201MessageGenerator::new(config)),
         Box::new(Ocpp201MessageHandler::new()),
       ),
       OcppVersion::V2_1 => (
-        Box::new(Ocpp21MessageGenerator::new(
-          MessageGeneratorConfig::default(),
-        )),
+        Box::new(Ocpp21MessageGenerator::new(config)),
         Box::new(Ocpp21MessageHandler::new()),
       ),
     };
@@ -174,6 +173,9 @@ impl ChargePoint {
           match msg {
             Ok(Message::Text(text)) => {
               info!("Received: {}", text);
+
+              // TODO: Parse message
+              //let shared_data = shared_data.write().await;
 
               if let Some(response_message) = ocpp_message_handler.handle_text_message(&text).await? {
                 ws_tx

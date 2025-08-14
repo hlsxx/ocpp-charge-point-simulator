@@ -1,7 +1,10 @@
+pub mod shared_data;
+
 use std::{fmt::Display, fs};
 
 use anyhow::Result;
 use serde::Deserialize;
+pub use shared_data::SharedData;
 
 #[derive(Clone, Debug, Deserialize)]
 pub enum OcppVersion {

@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+common = { path = "../common" }
 uuid = { version = "1.16.0", features = ["v4", "serde"] }
 rust-ocpp = { version = "3.0.1", features = ["v2_0_1", "v1_6"] }
 tracing = "0.1.41"
