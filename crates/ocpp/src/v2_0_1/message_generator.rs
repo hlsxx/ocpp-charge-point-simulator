@@ -24,9 +24,8 @@ use serde::Serialize;
 use serde_json::{Value, json};
 
 use super::types::OcppAction;
-use crate::message_generator::{
-  MessageBuilderTrait, MessageGeneratorConfig, MessageGeneratorTrait,
-};
+use crate::message_generator::{MessageGeneratorConfig, MessageGeneratorTrait};
+use crate::types::CommonConnectorStatusType;
 use uuid::Uuid;
 
 pub struct MessageGenerator {
@@ -74,6 +73,8 @@ impl FrameBuilder {
 
 #[async_trait]
 impl MessageGeneratorTrait for MessageGenerator {
+  type StatusType = CommonConnectorStatusType;
+
   // Charger -> CSMS
 
   async fn boot_notification(&self) -> Value {
@@ -86,7 +87,7 @@ impl MessageGeneratorTrait for MessageGenerator {
           vendor_name: self.config.vendor.clone(),
           firmware_version: Some("1.2.3".to_string()),
           ..Default::default()
-        }
+        },
       },
     )
   }
@@ -143,15 +144,15 @@ impl MessageGeneratorTrait for MessageGenerator {
     )
   }
 
-  async fn status_notification(&self) -> Value {
+  async fn status_notification(&self, status: Self::StatusType) -> Value {
     FrameBuilder::build_call(
       OcppAction::StatusNotification,
       StatusNotificationRequest {
         timestamp: Utc::now(),
         evse_id: 1,
         connector_id: 1,
-        connector_status: ConnectorStatusEnumType::Available
-      }
+        connector_status: status.into(),
+      },
     )
   }
 

@@ -3,6 +3,7 @@ use common::{ChargePointConfig, GeneralConfig, OcppVersion, SharedData};
 use ocpp::{
   message_generator::{MessageGeneratorConfig, MessageGeneratorTrait},
   messsage_handler::OcppMessageHandler,
+  types::CommonConnectorStatusType,
 };
 
 use anyhow::Result;
@@ -53,8 +54,7 @@ impl ChargePoint {
   pub async fn run(&mut self) -> Result<()> {
     let connection_url = format!(
       "{}/{}",
-      self.general_config.server_url,
-      self.charge_point_config.id
+      self.general_config.server_url, self.charge_point_config.id
     );
 
     info!(target: "simulator", "connecting to CSMS at {}", connection_url.cyan());
@@ -80,7 +80,7 @@ impl ChargePoint {
     let config = MessageGeneratorConfig::default();
 
     let (ocpp_message_generator, mut ocpp_message_handler): (
-      Box<dyn MessageGeneratorTrait>,
+      Box<dyn MessageGeneratorTrait<StatusType = _>>,
       Box<dyn OcppMessageHandler>,
     ) = match self.general_config.ocpp_version {
       OcppVersion::V1_6 => {
@@ -104,9 +104,9 @@ impl ChargePoint {
       self.charge_point_config.heartbeat_interval,
     ));
 
-    let mut status_interval = interval(Duration::from_secs(
-      self.charge_point_config.status_interval,
-    ));
+    // let mut status_interval = interval(Duration::from_secs(
+    //   self.charge_point_config.status_interval,
+    // ));
 
     let mut meter_values_interval = interval(Duration::from_secs(2));
 
@@ -138,8 +138,20 @@ impl ChargePoint {
             Message::Text(ocpp_message_generator.start_transaction().await.to_string().into())
           ).await;
 
+          let _ = ws_tx.send(
+            Message::Text(
+              ocpp_message_generator.status_notification(CommonConnectorStatusType::Preparing).await.to_string().into()
+            )
+          ).await;
+
           // TODO: This is timeout for assign transaction_id from the CSMS call result
           tokio::time::sleep(Duration::from_secs(5)).await;
+
+          let _ = ws_tx.send(
+            Message::Text(
+              ocpp_message_generator.status_notification(CommonConnectorStatusType::Charging).await.to_string().into()
+            )
+          ).await;
 
           stop_tx_deadline = Some(Instant::now() + Duration::from_secs(self.charge_point_config.stop_tx_after));
           transaction_active = true;
@@ -156,6 +168,12 @@ impl ChargePoint {
             Message::Text(ocpp_message_generator.stop_transaction().await.to_string().into())
           ).await;
 
+          let _ = ws_tx.send(
+            Message::Text(
+              ocpp_message_generator.status_notification(CommonConnectorStatusType::Available).await.to_string().into()
+            )
+          ).await;
+
           transaction_active = false;
           stop_tx_deadline = None;
           next_start_tx = Instant::now() + Duration::from_secs(self.charge_point_config.start_tx_after);
@@ -169,9 +187,9 @@ impl ChargePoint {
           let _ = ws_tx.send(Message::Text(ocpp_message_generator.heartbeat().await.to_string().into())).await;
         },
 
-        _ = status_interval.tick() => {
-          let _ = ws_tx.send(Message::Text(ocpp_message_generator.status_notification().await.to_string().into())).await;
-        },
+        // _ = status_interval.tick() => {
+        //   let _ = ws_tx.send(Message::Text(ocpp_message_generator.status_notification().await.to_string().into())).await;
+        // },
 
         Some(msg) = ws_rx.next() => {
           match msg {

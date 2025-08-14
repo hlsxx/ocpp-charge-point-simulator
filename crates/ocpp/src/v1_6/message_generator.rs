@@ -24,6 +24,7 @@ use uuid::Uuid;
 
 use crate::message_generator::{MessageGeneratorConfig, MessageGeneratorTrait};
 use crate::mock_data::MockData;
+use crate::types::CommonConnectorStatusType;
 
 use super::types::OcppAction;
 
@@ -80,6 +81,8 @@ pub struct MessageGenerator {
 
 #[async_trait]
 impl MessageGeneratorTrait for MessageGenerator {
+  type StatusType = CommonConnectorStatusType;
+
   // Charger -> CSMS
 
   async fn boot_notification(&self) -> Value {
@@ -143,14 +146,14 @@ impl MessageGeneratorTrait for MessageGenerator {
       .await
   }
 
-  async fn status_notification(&self) -> Value {
+  async fn status_notification(&self, status: Self::StatusType) -> Value {
     self
       .build_call(
         OcppAction::StatusNotification,
         StatusNotificationRequest {
           connector_id: 1,
           error_code: ChargePointErrorCode::NoError,
-          status: ChargePointStatus::Available,
+          status: status.into(),
           timestamp: Some(chrono::Utc::now()),
           ..Default::default()
         },
