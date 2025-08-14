@@ -1,6 +1,7 @@
 use std::fmt::Debug;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
+use async_trait::async_trait;
 use common::shared_data::SharedDataValue;
 use common::SharedData;
 use rust_ocpp::v1_6::messages::heart_beat::HeartbeatResponse;
@@ -24,30 +25,27 @@ use tracing::{debug, info};
 use uuid::Uuid;
 
 use crate::message_generator::{
-  MessageBuilderTrait, MessageGeneratorConfig, MessageGeneratorTrait,
+  MessageGeneratorConfig, MessageGeneratorTrait,
 };
 use crate::mock_data::MockData;
 
 use super::types::OcppAction;
 
-pub struct MessageGenerator<A: SharedDataValue> {
-  config: MessageGeneratorConfig,
-  shared_data: SharedData<A>,
-  id_counter: AtomicUsize,
-}
-
-struct FrameBuilder {
-  ocpp_action: OcppAction,
-  payload: Value,
-}
+struct FrameBuilder {}
 
 impl FrameBuilder {
-  fn build_call<T: Serialize + Debug>(ocpp_action: OcppAction, payload: T) -> Value {
+  async fn build_call<T>(shared_data: &SharedData<OcppAction>, ocpp_action: OcppAction, payload: T) -> Value
+  where
+    T: Debug + Serialize
+  {
     info!("🔌 [🔵 Call] {}",  ocpp_action);
     debug!(action = %ocpp_action, ?payload);
 
-    // let id = self.next_id();
-    json!([2, Uuid::new_v4(), ocpp_action, payload])
+    // let msg_id = self.next_id();
+    let msg_id = Uuid::new_v4();
+    shared_data.insert_msg(&msg_id, ocpp_action.clone()).await;
+
+    json!([2, msg_id, ocpp_action, payload])
   }
 
   pub fn build_call_result<T: Serialize>(message_id: &str, payload: T) -> Value {
@@ -70,35 +68,42 @@ impl FrameBuilder {
   }
 }
 
-impl<A: SharedDataValue> MessageGeneratorTrait for MessageGenerator<A> {
+pub struct MessageGenerator {
+  config: MessageGeneratorConfig,
+  shared_data: SharedData<OcppAction>,
+  id_counter: AtomicUsize,
+}
+
+#[async_trait]
+impl MessageGeneratorTrait for MessageGenerator {
   // Charger -> CSMS
 
-  fn boot_notification(&self) -> Value {
-    FrameBuilder::build_call(
+  async fn boot_notification(&self) -> Value {
+    self.build_call(
       OcppAction::BootNotification,
       BootNotificationRequest {
         charge_point_model: self.config.model.clone(),
         charge_point_vendor: self.config.vendor.clone(),
         ..Default::default()
       },
-    )
+    ).await
   }
 
-  fn heartbeat(&self) -> Value {
-    FrameBuilder::build_call(OcppAction::Heartbeat, HeartbeatRequest {})
+  async fn heartbeat(&self) -> Value {
+    self.build_call(OcppAction::Heartbeat, HeartbeatRequest {}).await
   }
 
-  fn authorize(&self) -> Value {
-    FrameBuilder::build_call(
+  async fn authorize(&self) -> Value {
+    self.build_call(
       OcppAction::Authorize,
       AuthorizeRequest {
         id_tag: self.config.id_tag.clone(),
       },
-    )
+    ).await
   }
 
-  fn start_transaction(&self) -> Value {
-    FrameBuilder::build_call(
+  async fn start_transaction(&self) -> Value {
+    self.build_call(
       OcppAction::StartTransaction,
       StartTransactionRequest {
         connector_id: 1,
@@ -107,11 +112,11 @@ impl<A: SharedDataValue> MessageGeneratorTrait for MessageGenerator<A> {
         timestamp: chrono::Utc::now(),
         ..Default::default()
       },
-    )
+    ).await
   }
 
-  fn stop_transaction(&self) -> Value {
-    FrameBuilder::build_call(
+  async fn stop_transaction(&self) -> Value {
+    self.build_call(
       OcppAction::StopTransaction,
       StopTransactionRequest {
         meter_stop: 10,
@@ -120,11 +125,11 @@ impl<A: SharedDataValue> MessageGeneratorTrait for MessageGenerator<A> {
         transaction_id: 1,
         ..Default::default()
       },
-    )
+    ).await
   }
 
-  fn status_notification(&self) -> Value {
-    FrameBuilder::build_call(
+  async fn status_notification(&self) -> Value {
+    self.build_call(
       OcppAction::StatusNotification,
       StatusNotificationRequest {
         connector_id: 1,
@@ -133,46 +138,46 @@ impl<A: SharedDataValue> MessageGeneratorTrait for MessageGenerator<A> {
         timestamp: Some(chrono::Utc::now()),
         ..Default::default()
       },
-    )
+    ).await
   }
 
-  fn meter_values(&self) -> Value {
-    FrameBuilder::build_call(
+  async fn meter_values(&self) -> Value {
+    self.build_call(
       OcppAction::MeterValues,
       MeterValuesRequest {
         connector_id: 1,
         meter_value: vec![MeterValue::mock_data()],
         transaction_id: Some(999),
       },
-    )
+    ).await
   }
 
-  fn diagnostics_status_notification(&self) -> Value {
-    FrameBuilder::build_call(
+  async fn diagnostics_status_notification(&self) -> Value {
+    self.build_call(
       OcppAction::DiagnosticsStatusNotification,
       DiagnosticsStatusNotificationRequest {
         status: DiagnosticsStatus::Uploaded,
       },
-    )
+    ).await
   }
 
-  fn firmware_status_notification(&self) -> Value {
-    FrameBuilder::build_call(
+  async fn firmware_status_notification(&self) -> Value {
+    self.build_call(
       OcppAction::FirmwareStatusNotification,
       FirmwareStatusNotificationRequest {
         status: FirmwareStatus::Installed,
       },
-    )
+    ).await
   }
 
-  fn data_transfer(&self) -> Value {
-    FrameBuilder::build_call(
+  async fn data_transfer(&self) -> Value {
+    self.build_call(
       OcppAction::StatusNotification,
       DataTransferRequest {
         vendor_string: self.config.vendor.clone(),
         ..Default::default()
       },
-    )
+    ).await
   }
 
   fn next_id(&self) -> String {
@@ -180,12 +185,19 @@ impl<A: SharedDataValue> MessageGeneratorTrait for MessageGenerator<A> {
   }
 }
 
-impl<A: SharedDataValue> MessageGenerator<A> {
-  pub fn new(config: MessageGeneratorConfig, shared_data: SharedData<A>) -> Self {
+impl MessageGenerator {
+  pub fn new(config: MessageGeneratorConfig, shared_data: SharedData<OcppAction>) -> Self {
     Self {
       config,
       shared_data,
       id_counter: AtomicUsize::new(1),
     }
+  }
+
+  async fn build_call<T>(&self, ocpp_action: OcppAction, payload: T) -> Value
+  where
+    T: Debug + Serialize
+  {
+    FrameBuilder::build_call(&self.shared_data, ocpp_action, payload).await
   }
 }

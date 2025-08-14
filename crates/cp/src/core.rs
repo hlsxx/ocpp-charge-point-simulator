@@ -124,6 +124,7 @@ impl ChargePoint {
       .send(Message::Text(
         ocpp_message_generator
           .boot_notification()
+          .await
           .to_string()
           .into(),
       ))
@@ -134,7 +135,7 @@ impl ChargePoint {
       select! {
         _ = time::sleep_until(next_start_tx), if !transaction_active => {
           let _ = ws_tx.send(
-            Message::Text(ocpp_message_generator.start_transaction().to_string().into())
+            Message::Text(ocpp_message_generator.start_transaction().await.to_string().into())
           ).await;
 
           stop_tx_deadline = Some(Instant::now() + Duration::from_secs(self.charge_point_config.stop_tx_after));
@@ -149,7 +150,7 @@ impl ChargePoint {
           }
         }, if stop_tx_deadline.is_some() => {
           let _ = ws_tx.send(
-            Message::Text(ocpp_message_generator.stop_transaction().to_string().into())
+            Message::Text(ocpp_message_generator.stop_transaction().await.to_string().into())
           ).await;
 
           transaction_active = false;
@@ -158,15 +159,15 @@ impl ChargePoint {
         },
 
         _ = meter_values_interval.tick(), if transaction_active => {
-          let _ = ws_tx.send(Message::Text(ocpp_message_generator.meter_values().to_string().into())).await;
+          let _ = ws_tx.send(Message::Text(ocpp_message_generator.meter_values().await.to_string().into())).await;
         },
 
         _ = heartbeat_interval.tick() => {
-          let _ = ws_tx.send(Message::Text(ocpp_message_generator.heartbeat().to_string().into())).await;
+          let _ = ws_tx.send(Message::Text(ocpp_message_generator.heartbeat().await.to_string().into())).await;
         },
 
         _ = status_interval.tick() => {
-          let _ = ws_tx.send(Message::Text(ocpp_message_generator.status_notification().to_string().into())).await;
+          let _ = ws_tx.send(Message::Text(ocpp_message_generator.status_notification().await.to_string().into())).await;
         },
 
         Some(msg) = ws_rx.next() => {

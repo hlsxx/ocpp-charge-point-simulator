@@ -1,5 +1,6 @@
 use std::sync::atomic::{AtomicUsize, Ordering};
 
+use async_trait::async_trait;
 use chrono::Utc;
 use rust_ocpp::v2_0_1::datatypes::transaction_type::TransactionType;
 use rust_ocpp::v2_0_1::enumerations::connector_status_enum_type::ConnectorStatusEnumType;
@@ -73,10 +74,11 @@ impl FrameBuilder {
   }
 }
 
+#[async_trait]
 impl MessageGeneratorTrait for MessageGenerator {
   // Charger -> CSMS
 
-  fn boot_notification(&self) -> Value {
+  async fn boot_notification(&self) -> Value {
     FrameBuilder::build_call(
       OcppAction::BootNotification,
       BootNotificationRequest {
@@ -92,11 +94,11 @@ impl MessageGeneratorTrait for MessageGenerator {
     )
   }
 
-  fn heartbeat(&self) -> Value {
+  async fn heartbeat(&self) -> Value {
     FrameBuilder::build_call(OcppAction::Heartbeat, HeartbeatRequest {})
   }
 
-  fn authorize(&self) -> Value {
+  async fn authorize(&self) -> Value {
     FrameBuilder::build_call(
       OcppAction::Authorize,
       AuthorizeRequest {
@@ -110,7 +112,7 @@ impl MessageGeneratorTrait for MessageGenerator {
     )
   }
 
-  fn start_transaction(&self) -> Value {
+  async fn start_transaction(&self) -> Value {
     FrameBuilder::build_call(
       OcppAction::TransactionEvent,
       TransactionEventRequest {
@@ -127,7 +129,7 @@ impl MessageGeneratorTrait for MessageGenerator {
     )
   }
 
-  fn stop_transaction(&self) -> Value {
+  async fn stop_transaction(&self) -> Value {
     FrameBuilder::build_call(
       OcppAction::TransactionEvent,
       TransactionEventRequest {
@@ -144,7 +146,7 @@ impl MessageGeneratorTrait for MessageGenerator {
     )
   }
 
-  fn status_notification(&self) -> Value {
+  async fn status_notification(&self) -> Value {
     FrameBuilder::build_call(
       OcppAction::StatusNotification,
       StatusNotificationRequest {
@@ -157,7 +159,7 @@ impl MessageGeneratorTrait for MessageGenerator {
     )
   }
 
-  fn meter_values(&self) -> Value {
+  async fn meter_values(&self) -> Value {
     FrameBuilder::build_call(
       OcppAction::MeterValues,
       MeterValuesRequest {
@@ -167,11 +169,11 @@ impl MessageGeneratorTrait for MessageGenerator {
     )
   }
 
-  fn diagnostics_status_notification(&self) -> Value {
+  async fn diagnostics_status_notification(&self) -> Value {
     FrameBuilder::build_call(OcppAction::Heartbeat, HeartbeatRequest {})
   }
 
-  fn firmware_status_notification(&self) -> Value {
+  async fn firmware_status_notification(&self) -> Value {
     FrameBuilder::build_call(
       OcppAction::FirmwareStatusNotification,
       FirmwareStatusNotificationRequest {
@@ -181,7 +183,7 @@ impl MessageGeneratorTrait for MessageGenerator {
     )
   }
 
-  fn data_transfer(&self) -> Value {
+  async fn data_transfer(&self) -> Value {
     FrameBuilder::build_call(
       OcppAction::DataTransfer,
       DataTransferRequest {

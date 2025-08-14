@@ -1,19 +1,20 @@
 use std::{collections::HashMap, sync::Arc};
 
 use tokio::sync::RwLock;
+use uuid::Uuid;
 
 pub trait SharedDataValue: Send + Sync {}
 impl <A: Send + Sync> SharedDataValue for A {}
 
 struct SharedState<A: SharedDataValue> {
-  pending_requests: HashMap<String, A>,
+  msgs: HashMap<Uuid, A>,
   transaction_id: Option<i32>
 }
 
 impl<A: SharedDataValue> SharedState<A> {
   fn new() -> Self {
     Self {
-      pending_requests: HashMap::new(),
+      msgs: HashMap::new(),
       transaction_id: None
     }
   }
@@ -29,6 +30,10 @@ impl<A: SharedDataValue> SharedData<A> {
     Self {
       state: Arc::new(RwLock::new(SharedState::new()))
     }
+  }
+
+  pub async fn insert_msg(&self, msg_id: &Uuid, ocpp_action: A) {
+    self.state.write().await.msgs.insert(msg_id.clone(), ocpp_action);
   }
 
   pub async fn get_transaction_id(&self) -> Option<i32> {
