@@ -1,8 +1,8 @@
 [workspace]
+resolver = "3"
 members = [
   "app",
   "crates/ocpp",
   "crates/cp",
-  "crates/simulator",
   "crates/common"
 ]
