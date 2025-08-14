@@ -1,6 +1,7 @@
 use std::fmt::Debug;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
+use common::shared_data::SharedDataValue;
 use common::SharedData;
 use rust_ocpp::v1_6::messages::heart_beat::HeartbeatResponse;
 use rust_ocpp::v1_6::messages::{
@@ -29,7 +30,7 @@ use crate::mock_data::MockData;
 
 use super::types::OcppAction;
 
-pub struct MessageGenerator<A: Send + Sync> {
+pub struct MessageGenerator<A: SharedDataValue> {
   config: MessageGeneratorConfig,
   shared_data: SharedData<A>,
   id_counter: AtomicUsize,
@@ -69,7 +70,7 @@ impl FrameBuilder {
   }
 }
 
-impl<A: Send + Sync> MessageGeneratorTrait for MessageGenerator<A> {
+impl<A: SharedDataValue> MessageGeneratorTrait for MessageGenerator<A> {
   // Charger -> CSMS
 
   fn boot_notification(&self) -> Value {
@@ -179,7 +180,7 @@ impl<A: Send + Sync> MessageGeneratorTrait for MessageGenerator<A> {
   }
 }
 
-impl<A: Send + Sync> MessageGenerator<A> {
+impl<A: SharedDataValue> MessageGenerator<A> {
   pub fn new(config: MessageGeneratorConfig, shared_data: SharedData<A>) -> Self {
     Self {
       config,

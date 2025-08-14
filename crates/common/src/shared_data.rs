@@ -2,12 +2,15 @@ use std::{collections::HashMap, sync::Arc};
 
 use tokio::sync::RwLock;
 
-struct SharedState<A: Send + Sync> {
+pub trait SharedDataValue: Send + Sync {}
+impl <A: Send + Sync> SharedDataValue for A {}
+
+struct SharedState<A: SharedDataValue> {
   pending_requests: HashMap<String, A>,
   transaction_id: Option<i32>
 }
 
-impl<A: Send + Sync> SharedState<A> {
+impl<A: SharedDataValue> SharedState<A> {
   fn new() -> Self {
     Self {
       pending_requests: HashMap::new(),
@@ -17,11 +20,11 @@ impl<A: Send + Sync> SharedState<A> {
 }
 
 #[derive(Clone)]
-pub struct SharedData<A: Send + Sync> {
+pub struct SharedData<A: SharedDataValue> {
   state: Arc<RwLock<SharedState<A>>>
 }
 
-impl<A: Send + Sync> SharedData<A> {
+impl<A: SharedDataValue> SharedData<A> {
   pub fn new() -> Self {
     Self {
       state: Arc::new(RwLock::new(SharedState::new()))
