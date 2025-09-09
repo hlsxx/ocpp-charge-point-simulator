@@ -30,7 +30,7 @@ impl Simulator {
 
     let mut handles: Vec<JoinHandle<()>> = Vec::new();
 
-    let mut all_cps = self.config.charge_points.clone();
+    let mut all_cps = self.config.charge_points.clone().unwrap_or_else(Vec::new);
 
     if let Some(implicit_cps) = &self.config.implicit_charge_points {
       let generated = Self::generate_implicit_cps(implicit_cps);

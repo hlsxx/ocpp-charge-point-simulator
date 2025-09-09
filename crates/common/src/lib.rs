@@ -76,7 +76,7 @@ pub struct ChargePointConfig {
 #[derive(Debug, Deserialize, Clone)]
 pub struct Config {
   pub general: GeneralConfig,
-  pub charge_points: Vec<ChargePointConfig>,
+  pub charge_points: Option<Vec<ChargePointConfig>>,
   pub implicit_charge_points: Option<ImplicitChargePointConfig>,
 }
 
