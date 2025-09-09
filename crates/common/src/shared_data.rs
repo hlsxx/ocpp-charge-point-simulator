@@ -24,13 +24,15 @@ pub struct SharedData<A: SharedDataValue> {
   state: Arc<RwLock<SharedState<A>>>,
 }
 
-impl<A: SharedDataValue + Clone> SharedData<A> {
-  pub fn new() -> Self {
+impl<A: SharedDataValue + Clone> Default for SharedData<A> {
+  fn default() -> Self {
     Self {
       state: Arc::new(RwLock::new(SharedState::new())),
     }
   }
+}
 
+impl<A: SharedDataValue + Clone> SharedData<A> {
   pub async fn insert_msg(&self, msg_id: &String, ocpp_action: A) {
     self
       .state

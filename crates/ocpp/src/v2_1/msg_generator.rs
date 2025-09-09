@@ -3,7 +3,6 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use async_trait::async_trait;
 use chrono::Utc;
 use rust_ocpp::v2_0_1::datatypes::transaction_type::TransactionType;
-use rust_ocpp::v2_0_1::enumerations::connector_status_enum_type::ConnectorStatusEnumType;
 use rust_ocpp::v2_0_1::enumerations::firmware_status_enum_type::FirmwareStatusEnumType;
 use rust_ocpp::v2_0_1::enumerations::id_token_enum_type::IdTokenEnumType;
 use rust_ocpp::v2_0_1::enumerations::transaction_event_enum_type::TransactionEventEnumType;
@@ -23,7 +22,7 @@ use rust_ocpp::v2_0_1::enumerations::boot_reason_enum_type::BootReasonEnumType;
 use serde::Serialize;
 use serde_json::{Value, json};
 
-use crate::message_generator::{MessageGeneratorConfig, MessageGeneratorTrait};
+use crate::msg_generator::{MessageGeneratorConfig, MessageGeneratorTrait};
 use crate::types::CommonConnectorStatusType;
 use uuid::Uuid;
 

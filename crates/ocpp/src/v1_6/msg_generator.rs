@@ -12,7 +12,6 @@ use rust_ocpp::v1_6::messages::{
   status_notification::StatusNotificationRequest, stop_transaction::StopTransactionRequest,
 };
 
-use rust_ocpp::v1_6::types::ChargePointStatus;
 use rust_ocpp::v1_6::types::DiagnosticsStatus;
 use rust_ocpp::v1_6::types::FirmwareStatus;
 use rust_ocpp::v1_6::types::{ChargePointErrorCode, MeterValue};
@@ -22,8 +21,8 @@ use serde_json::{Value, json};
 use tracing::{debug, info};
 use uuid::Uuid;
 
-use crate::message_generator::{MessageGeneratorConfig, MessageGeneratorTrait};
 use crate::mock_data::MockData;
+use crate::msg_generator::{MessageGeneratorConfig, MessageGeneratorTrait};
 use crate::types::CommonConnectorStatusType;
 
 use super::types::OcppAction;
@@ -42,7 +41,6 @@ impl FrameBuilder {
     info!("🔌 [🔵 Call] {}", ocpp_action);
     debug!(action = %ocpp_action, ?payload);
 
-    // let msg_id = self.next_id();
     let msg_id = Uuid::new_v4();
     shared_data
       .insert_msg(&msg_id.to_string(), ocpp_action.clone())
@@ -82,8 +80,6 @@ pub struct MessageGenerator {
 #[async_trait]
 impl MessageGeneratorTrait for MessageGenerator {
   type StatusType = CommonConnectorStatusType;
-
-  // Charger -> CSMS
 
   async fn boot_notification(&self) -> Value {
     self
@@ -138,7 +134,6 @@ impl MessageGeneratorTrait for MessageGenerator {
           meter_stop: 10,
           timestamp: chrono::Utc::now(),
           id_tag: Some(self.config.id_tag.clone()),
-          // TODO: unwrap
           transaction_id: self.shared_data.get_transaction_id().await.unwrap_or(1),
           ..Default::default()
         },
@@ -162,16 +157,22 @@ impl MessageGeneratorTrait for MessageGenerator {
   }
 
   async fn meter_values(&self) -> Value {
-    self
-      .build_call(
-        OcppAction::MeterValues,
-        MeterValuesRequest {
-          connector_id: 1,
-          meter_value: vec![MeterValue::mock_data()],
-          transaction_id: self.shared_data.get_transaction_id().await,
-        },
-      )
-      .await
+    let transaction_id = self.shared_data.get_transaction_id().await;
+
+    if let Some(transaction_id) = transaction_id {
+      self
+        .build_call(
+          OcppAction::MeterValues,
+          MeterValuesRequest {
+            connector_id: 1,
+            meter_value: vec![MeterValue::mock_data()],
+            transaction_id: Some(transaction_id),
+          },
+        )
+        .await
+    } else {
+      Value::Null
+    }
   }
 
   async fn diagnostics_status_notification(&self) -> Value {

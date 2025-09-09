@@ -1,8 +1,8 @@
 use common::{ChargePointConfig, GeneralConfig, OcppVersion, SharedData};
 
 use ocpp::{
-  message_generator::{MessageGeneratorConfig, MessageGeneratorTrait},
-  messsage_handler::OcppMessageHandler,
+  msg_generator::{MessageGeneratorConfig, MessageGeneratorTrait},
+  msg_handler::OcppMessageHandler,
   types::CommonConnectorStatusType,
 };
 
@@ -26,16 +26,18 @@ use tungstenite::{
 };
 
 use ocpp::v1_6::{
-  message_generator::MessageGenerator as Ocpp16MessageGenerator,
-  message_handler::MessageHandler as Ocpp16MessageHandler,
+  msg_generator::MessageGenerator as Ocpp16MessageGenerator,
+  msg_handler::MessageHandler as Ocpp16MessageHandler,
 };
+
 use ocpp::v2_0_1::{
-  message_generator::MessageGenerator as Ocpp201MessageGenerator,
-  message_handler::MessageHandler as Ocpp201MessageHandler,
+  msg_generator::MessageGenerator as Ocpp201MessageGenerator,
+  msg_handler::MessageHandler as Ocpp201MessageHandler,
 };
+
 use ocpp::v2_1::{
-  message_generator::MessageGenerator as Ocpp21MessageGenerator,
-  message_handler::MessageHandler as Ocpp21MessageHandler,
+  msg_generator::MessageGenerator as Ocpp21MessageGenerator,
+  msg_handler::MessageHandler as Ocpp21MessageHandler,
 };
 
 pub struct ChargePoint {
@@ -84,7 +86,7 @@ impl ChargePoint {
       Box<dyn OcppMessageHandler>,
     ) = match self.general_config.ocpp_version {
       OcppVersion::V1_6 => {
-        let shared_data = SharedData::<ocpp::v1_6::types::OcppAction>::new();
+        let shared_data = SharedData::<ocpp::v1_6::types::OcppAction>::default();
         (
           Box::new(Ocpp16MessageGenerator::new(config, shared_data.clone())),
           Box::new(Ocpp16MessageHandler::new(shared_data.clone())),
@@ -180,7 +182,11 @@ impl ChargePoint {
         },
 
         _ = meter_values_interval.tick(), if transaction_active => {
-          let _ = ws_tx.send(Message::Text(ocpp_message_generator.meter_values().await.to_string().into())).await;
+          let meter_values_string = ocpp_message_generator.meter_values().await.to_string();
+
+          if meter_values_string != "null" {
+            let _ = ws_tx.send(Message::Text(meter_values_string.into())).await;
+          }
         },
 
         _ = heartbeat_interval.tick() => {
@@ -219,35 +225,6 @@ impl ChargePoint {
       }
     }
 
-    // let outbound_task = tokio::spawn(async move {
-    //   loop {
-    //     tokio::time::sleep(Duration::from_secs(10)).await;
-    //
-    //     let start_transaction = MessageGenerator::to_frame(
-    //       &message_generator,
-    //       OcppAction::StartTransaction,
-    //       message_generator.start_transaction(),
-    //     );
-    //
-    //     let mut ws_tx_guard = ws_tx_mutex_clone.lock().await;
-    //
-    //     match ws_tx_guard
-    //       .send(Message::Text(start_transaction.to_string().into()))
-    //       .await
-    //     {
-    //       Ok(_) => {
-    //         info!("StartTransaction sent");
-    //         debug!(?start_transaction);
-    //       }
-    //       Err(err) => {
-    //         error!("Failed to send StartTransaction: {err}");
-    //         break;
-    //       }
-    //     }
-    //   }
-    // });
-
-    // outbound_task.abort();
     info!("Client shutdown");
 
     Ok(())

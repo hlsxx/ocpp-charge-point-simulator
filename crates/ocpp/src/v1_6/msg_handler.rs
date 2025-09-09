@@ -1,7 +1,7 @@
 use std::{fmt::Debug, str::FromStr};
 
 use super::types::OcppAction;
-use crate::messsage_handler::{OcppMessageFrame, OcppMessageFrameType, OcppMessageHandler};
+use crate::msg_handler::{OcppMessageFrame, OcppMessageFrameType, OcppMessageHandler};
 use anyhow::Result;
 use async_trait::async_trait;
 use common::SharedData;
@@ -27,9 +27,9 @@ impl MessageHandler {
 #[async_trait]
 impl OcppMessageHandler for MessageHandler {
   fn parse_ocpp_message(&self, text: &str) -> Result<OcppMessageFrameType> {
-    let arr: Vec<Value> = serde_json::from_str(&text)?;
+    let arr: Vec<Value> = serde_json::from_str(text)?;
 
-    match arr.get(0).and_then(|v| v.as_u64()) {
+    match arr.first().and_then(|v| v.as_u64()) {
       Some(2) => {
         let msg_id = arr[1].as_str().unwrap_or("").to_string();
         let action_string = arr[2].as_str().unwrap_or("").to_string();

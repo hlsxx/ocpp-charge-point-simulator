@@ -52,11 +52,7 @@ impl MockData for SampledValue {
       format: Some(format_options.choose(&mut rng).unwrap().clone()),
       location: Some(location_options.choose(&mut rng).unwrap().clone()),
       measurand: Some(measurand_options.choose(&mut rng).unwrap().clone()),
-      phase: phase_options
-        .choose(&mut rng)
-        .unwrap()
-        .as_ref()
-        .map(|p| p.clone()),
+      phase: phase_options.choose(&mut rng).unwrap().clone(),
       unit: Some(unit_options.choose(&mut rng).unwrap().clone()),
       value: format!("{:.3}", rng.random_range(0.0..1000.0)),
     }
