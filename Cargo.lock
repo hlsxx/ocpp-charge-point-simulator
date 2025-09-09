@@ -244,7 +244,7 @@ checksum = "773648b94d0e5d620f64f280777445740e61fe701025087ec8b57f45c791888b"
 
 [[package]]
 name = "cp"
-version = "0.1.0"
+version = "0.0.1"
 dependencies = [
  "anyhow",
  "colored",
@@ -792,7 +792,7 @@ dependencies = [
 
 [[package]]
 name = "ocpp"
-version = "0.1.0"
+version = "0.0.1"
 dependencies = [
  "anyhow",
  "async-trait",
