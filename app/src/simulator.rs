@@ -6,10 +6,8 @@ use tokio::task::JoinHandle;
 use tracing::info;
 
 use cp::ChargePoint;
-
-use common::{ChargePointConfig, Config, ImplicitChargePointConfig};
-
 use colored::Colorize;
+use common::{ChargePointConfig, Config, ImplicitChargePointConfig};
 
 pub struct Simulator {
   config: Config,
@@ -25,6 +23,11 @@ impl Simulator {
     Self { config }
   }
 
+  /// Reads the configured charge point definitions and starts virtual charge points.
+  ///
+  /// Each charge point is spawned as a separate asynchronous task using `tokio::spawn`.
+  /// Both explicit charge points from the configuration file and any generated
+  /// implicit charge points are included.
   pub async fn run(&self) -> Result<()> {
     info!("simulator running...");
 
@@ -39,10 +42,9 @@ impl Simulator {
 
     let general_config = Arc::new(self.config.general.clone());
     for cp_config in all_cps {
-      let general_config_clone = general_config.clone();
-
+      let general_config = general_config.clone();
       let handle = tokio::spawn(async move {
-        let mut charger = ChargePoint::new(general_config_clone, cp_config);
+        let mut charger = ChargePoint::new(general_config, cp_config);
 
         if let Err(e) = charger.run().await {
           eprintln!("Client failed: {:?}", e);
@@ -57,7 +59,7 @@ impl Simulator {
     Ok(())
   }
 
-  /// Generates implicit charge points from the config file.
+  /// Generates a list of charge point configurations from the given implicit config.
   fn generate_implicit_cps(cfg: &ImplicitChargePointConfig) -> Vec<ChargePointConfig> {
     (0..cfg.count)
       .map(|i| ChargePointConfig {
