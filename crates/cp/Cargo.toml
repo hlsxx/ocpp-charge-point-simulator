@@ -17,3 +17,11 @@ tokio = { version = "1.45.0", features = ["full"] }
 tokio-tungstenite = "0.26.2"
 tungstenite = "0.26.2"
 tracing = "0.1.41"
+
+[features]
+default = ["ocpp1_6"]
+
+ocpp1_6 = []
+ocpp2_0_1 = []
+ocpp2_1 = []
+

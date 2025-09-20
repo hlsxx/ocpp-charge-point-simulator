@@ -25,16 +25,19 @@ use tungstenite::{
   },
 };
 
+#[cfg(feature = "ocpp1_6")]
 use ocpp::v1_6::{
   msg_generator::MessageGenerator as Ocpp16MessageGenerator,
   msg_handler::MessageHandler as Ocpp16MessageHandler,
 };
 
+#[cfg(feature = "ocpp2_0_1")]
 use ocpp::v2_0_1::{
   msg_generator::MessageGenerator as Ocpp201MessageGenerator,
   msg_handler::MessageHandler as Ocpp201MessageHandler,
 };
 
+#[cfg(feature = "ocpp2_1")]
 use ocpp::v2_1::{
   msg_generator::MessageGenerator as Ocpp21MessageGenerator,
   msg_handler::MessageHandler as Ocpp21MessageHandler,
@@ -85,6 +88,7 @@ impl ChargePoint {
       Box<dyn MessageGeneratorTrait<StatusType = _>>,
       Box<dyn OcppMessageHandler>,
     ) = match self.general_config.ocpp_version {
+      #[cfg(feature = "ocpp1_6")]
       OcppVersion::V1_6 => {
         let shared_data = SharedData::<ocpp::v1_6::types::OcppAction>::default();
         (
@@ -92,14 +96,20 @@ impl ChargePoint {
           Box::new(Ocpp16MessageHandler::new(shared_data.clone())),
         )
       }
+
+      #[cfg(feature = "ocpp2_0_1")]
       OcppVersion::V2_0_1 => (
         Box::new(Ocpp201MessageGenerator::new(config)),
         Box::new(Ocpp201MessageHandler::new()),
       ),
+
+      #[cfg(feature = "ocpp2_1")]
       OcppVersion::V2_1 => (
         Box::new(Ocpp21MessageGenerator::new(config)),
         Box::new(Ocpp21MessageHandler::new()),
       ),
+
+      _ => panic!("OCPP version not supported in this build"),
     };
 
     let mut heartbeat_interval = interval(Duration::from_secs(
