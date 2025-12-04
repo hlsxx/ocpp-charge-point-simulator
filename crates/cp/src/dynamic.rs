@@ -7,25 +7,13 @@ use tokio::{
   time::{self, Duration, Instant, interval, sleep},
 };
 
-use ocpp::{
-  create_ocpp_handlers, msg_generator::MessageGenerator, msg_handler::MessageHandler,
-  types::CommonConnectorStatusType,
-};
+use ocpp::{create_ocpp_handlers, types::CommonConnectorStatusType};
 
 use futures_util::{SinkExt, StreamExt};
 use tracing::{error, info};
 use tungstenite::Message;
 
-#[cfg(feature = "ocpp1_6")]
-use ocpp::v1_6::{msg_generator::V16MessageGenerator, msg_handler::V16MessageHandler};
-
-#[cfg(feature = "ocpp2_0_1")]
-use ocpp::v2_0_1::{msg_generator::V201MessageGenerator, msg_handler::V201MessageHandler};
-
-#[cfg(feature = "ocpp2_1")]
-use ocpp::v2_1::{msg_generator::V21MessageGenerator, msg_handler::V21MessageHandler};
-
-use crate::ChargePointClient;
+use super::core::ChargePointClient;
 
 pub struct ChargePointDynamic {
   general_config: Arc<GeneralConfig>,

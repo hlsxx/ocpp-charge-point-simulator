@@ -5,7 +5,7 @@ use std::sync::Arc;
 use futures_util::StreamExt;
 use tracing::info;
 
-use crate::ChargePointClient;
+use super::core::ChargePointClient;
 
 pub struct ChargePointIdle {
   general_config: Arc<GeneralConfig>,
@@ -22,7 +22,7 @@ impl ChargePointIdle {
 
   pub async fn run(&mut self) -> Result<()> {
     let ws_stream = ChargePointClient::connect(&self.general_config, &self.config).await?;
-    let (mut ws_tx, mut ws_rx) = ws_stream.split();
+    let (mut _ws_tx, mut _ws_rx) = ws_stream.split();
 
     info!("Client shutdown");
 
