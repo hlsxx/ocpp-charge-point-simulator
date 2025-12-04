@@ -1,242 +1,31 @@
-use common::{ChargePointConfig, GeneralConfig, OcppVersion, SharedData};
-
-use ocpp::{
-  msg_generator::{MessageGeneratorConfig, MessageGeneratorTrait},
-  msg_handler::OcppMessageHandler,
-  types::CommonConnectorStatusType,
-};
+use std::str::FromStr;
 
 use anyhow::Result;
 use colored::Colorize;
-use futures_util::{SinkExt, StreamExt};
-use std::sync::Arc;
-use tokio::{
-  select,
-  time::{self, Duration, Instant, interval, sleep},
-};
-use tokio_tungstenite::connect_async;
-use tokio_tungstenite::tungstenite::http::Request;
-use tracing::{error, info};
-use tungstenite::{
-  Message,
-  handshake::client::generate_key,
-  http::header::{
-    CONNECTION, HOST, SEC_WEBSOCKET_KEY, SEC_WEBSOCKET_PROTOCOL, SEC_WEBSOCKET_VERSION, UPGRADE,
-  },
-};
+use common::{ChargePointConfig, GeneralConfig, OcppVersion};
+use http::Uri;
+use tokio::net::TcpStream;
+use tokio_tungstenite::{MaybeTlsStream, WebSocketStream, connect_async};
+use tracing::info;
+use tungstenite::ClientRequestBuilder;
 
-#[cfg(feature = "ocpp1_6")]
-use ocpp::v1_6::{
-  msg_generator::MessageGenerator as Ocpp16MessageGenerator,
-  msg_handler::MessageHandler as Ocpp16MessageHandler,
-};
+pub struct ChargePointClient;
 
-#[cfg(feature = "ocpp2_0_1")]
-use ocpp::v2_0_1::{
-  msg_generator::MessageGenerator as Ocpp201MessageGenerator,
-  msg_handler::MessageHandler as Ocpp201MessageHandler,
-};
+impl ChargePointClient {
+  pub async fn connect(
+    general_config: &GeneralConfig,
+    config: &ChargePointConfig,
+  ) -> Result<WebSocketStream<MaybeTlsStream<TcpStream>>> {
+    let uri = Uri::from_str(&format!("{}/{}", general_config.server_url, config.id))?;
 
-#[cfg(feature = "ocpp2_1")]
-use ocpp::v2_1::{
-  msg_generator::MessageGenerator as Ocpp21MessageGenerator,
-  msg_handler::MessageHandler as Ocpp21MessageHandler,
-};
+    info!(target: "simulator", "connecting to CSMS at {}", uri.to_string().cyan());
 
-pub struct ChargePoint {
-  general_config: Arc<GeneralConfig>,
-  charge_point_config: ChargePointConfig,
-}
-
-impl ChargePoint {
-  pub fn new(general_config: Arc<GeneralConfig>, charge_point_config: ChargePointConfig) -> Self {
-    Self {
-      general_config,
-      charge_point_config,
-    }
-  }
-
-  pub async fn run(&mut self) -> Result<()> {
-    let connection_url = format!(
-      "{}/{}",
-      self.general_config.server_url, self.charge_point_config.id
-    );
-
-    info!(target: "simulator", "connecting to CSMS at {}", connection_url.cyan());
-
-    let request = Request::builder()
-      .method("GET")
-      .uri(&connection_url)
-      .header(HOST, connection_url)
-      .header(
-        SEC_WEBSOCKET_PROTOCOL,
-        self.general_config.ocpp_version.to_string(),
-      )
-      .header(CONNECTION, "Upgrade")
-      .header(UPGRADE, "Websocket")
-      .header(SEC_WEBSOCKET_VERSION, "13")
-      .header(SEC_WEBSOCKET_KEY, generate_key())
-      .header(SEC_WEBSOCKET_PROTOCOL, OcppVersion::V1_6.to_string())
-      .body(())?;
+    let request = ClientRequestBuilder::new(uri)
+      .with_header("Authorization", "Basic dHNzMDR0ZXN0OnBhc3N3b3Jk")
+      .with_sub_protocol(OcppVersion::V1_6.to_string());
 
     let (ws_stream, _) = connect_async(request).await?;
-    let (mut ws_tx, mut ws_rx) = ws_stream.split();
 
-    let config = MessageGeneratorConfig::default();
-
-    let (ocpp_message_generator, mut ocpp_message_handler): (
-      Box<dyn MessageGeneratorTrait<StatusType = _>>,
-      Box<dyn OcppMessageHandler>,
-    ) = match self.general_config.ocpp_version {
-      #[cfg(feature = "ocpp1_6")]
-      OcppVersion::V1_6 => {
-        let shared_data = SharedData::<ocpp::v1_6::types::OcppAction>::default();
-        (
-          Box::new(Ocpp16MessageGenerator::new(config, shared_data.clone())),
-          Box::new(Ocpp16MessageHandler::new(shared_data.clone())),
-        )
-      }
-
-      #[cfg(feature = "ocpp2_0_1")]
-      OcppVersion::V2_0_1 => (
-        Box::new(Ocpp201MessageGenerator::new(config)),
-        Box::new(Ocpp201MessageHandler::new()),
-      ),
-
-      #[cfg(feature = "ocpp2_1")]
-      OcppVersion::V2_1 => (
-        Box::new(Ocpp21MessageGenerator::new(config)),
-        Box::new(Ocpp21MessageHandler::new()),
-      ),
-
-      _ => panic!("OCPP version not supported in this build"),
-    };
-
-    let mut heartbeat_interval = interval(Duration::from_secs(
-      self.charge_point_config.heartbeat_interval,
-    ));
-
-    // let mut status_interval = interval(Duration::from_secs(
-    //   self.charge_point_config.status_interval,
-    // ));
-
-    let mut meter_values_interval = interval(Duration::from_secs(2));
-
-    let mut next_start_tx =
-      Instant::now() + Duration::from_secs(self.charge_point_config.start_tx_after);
-    let mut stop_tx_deadline: Option<Instant> = None;
-    let mut transaction_active = false;
-
-    let _ = sleep(Duration::from_millis(
-      self.charge_point_config.boot_delay_interval,
-    ))
-    .await;
-
-    ws_tx
-      .send(Message::Text(
-        ocpp_message_generator
-          .boot_notification()
-          .await
-          .to_string()
-          .into(),
-      ))
-      .await
-      .unwrap();
-
-    loop {
-      select! {
-        _ = time::sleep_until(next_start_tx), if !transaction_active => {
-          let _ = ws_tx.send(
-            Message::Text(ocpp_message_generator.start_transaction().await.to_string().into())
-          ).await;
-
-          let _ = ws_tx.send(
-            Message::Text(
-              ocpp_message_generator.status_notification(CommonConnectorStatusType::Preparing).await.to_string().into()
-            )
-          ).await;
-
-          // TODO: This is timeout for assign transaction_id from the CSMS call result
-          tokio::time::sleep(Duration::from_secs(5)).await;
-
-          let _ = ws_tx.send(
-            Message::Text(
-              ocpp_message_generator.status_notification(CommonConnectorStatusType::Charging).await.to_string().into()
-            )
-          ).await;
-
-          stop_tx_deadline = Some(Instant::now() + Duration::from_secs(self.charge_point_config.stop_tx_after));
-          transaction_active = true;
-        },
-
-        _ = async {
-          if let Some(deadline) = stop_tx_deadline {
-            time::sleep_until(deadline).await;
-          } else {
-            futures::future::pending::<()>().await;
-          }
-        }, if stop_tx_deadline.is_some() => {
-          let _ = ws_tx.send(
-            Message::Text(ocpp_message_generator.stop_transaction().await.to_string().into())
-          ).await;
-
-          let _ = ws_tx.send(
-            Message::Text(
-              ocpp_message_generator.status_notification(CommonConnectorStatusType::Available).await.to_string().into()
-            )
-          ).await;
-
-          transaction_active = false;
-          stop_tx_deadline = None;
-          next_start_tx = Instant::now() + Duration::from_secs(self.charge_point_config.start_tx_after);
-        },
-
-        _ = meter_values_interval.tick(), if transaction_active => {
-          let meter_values_string = ocpp_message_generator.meter_values().await.to_string();
-
-          if meter_values_string != "null" {
-            let _ = ws_tx.send(Message::Text(meter_values_string.into())).await;
-          }
-        },
-
-        _ = heartbeat_interval.tick() => {
-          let _ = ws_tx.send(Message::Text(ocpp_message_generator.heartbeat().await.to_string().into())).await;
-        },
-
-        // _ = status_interval.tick() => {
-        //   let _ = ws_tx.send(Message::Text(ocpp_message_generator.status_notification().await.to_string().into())).await;
-        // },
-
-        Some(msg) = ws_rx.next() => {
-          match msg {
-            Ok(Message::Text(text)) => {
-              info!("Received: {}", text);
-
-              // TODO: Parse message
-              //let shared_data = shared_data.write().await;
-
-              if let Some(response_message) = ocpp_message_handler.handle_text_message(&text).await? {
-                ws_tx
-                  .send(Message::Text(response_message.clone().into()))
-                  .await?;
-              }
-            }
-            Ok(Message::Close(_)) => {
-              info!("CSMS closed connection");
-              break;
-            }
-            Err(e) => {
-              error!("WebSocket error: {e}");
-              break;
-            }
-            _ => {}
-          }
-        }
-      }
-    }
-
-    info!("Client shutdown");
-
-    Ok(())
+    Ok(ws_stream)
   }
 }

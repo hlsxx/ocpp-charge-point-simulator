@@ -3,7 +3,7 @@ debug_mode = true
 server_url = "ws://localhost:3000/charge-point"
 ocpp_version = "ocpp1.6"
 
-# Implicit charge points
+# Optional: Implicit charge points (generates multiple CPs automatically)
 #[implicit_charge_points]
 #count = 5
 #prefix = "CP"

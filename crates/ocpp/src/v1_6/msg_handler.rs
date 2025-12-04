@@ -1,7 +1,7 @@
 use std::{fmt::Debug, str::FromStr};
 
 use super::types::OcppAction;
-use crate::msg_handler::{OcppMessageFrame, OcppMessageFrameType, OcppMessageHandler};
+use crate::msg_handler::{MessageFrame, MessageFrameType, MessageHandler};
 use anyhow::Result;
 use async_trait::async_trait;
 use common::SharedData;
@@ -14,19 +14,19 @@ use serde::{Serialize, de::DeserializeOwned};
 use serde_json::Value;
 use tracing::{debug, info};
 
-pub struct MessageHandler {
+pub struct V16MessageHandler {
   shared_data: SharedData<OcppAction>,
 }
 
-impl MessageHandler {
+impl V16MessageHandler {
   pub fn new(shared_data: SharedData<OcppAction>) -> Self {
     Self { shared_data }
   }
 }
 
 #[async_trait]
-impl OcppMessageHandler for MessageHandler {
-  fn parse_ocpp_message(&self, text: &str) -> Result<OcppMessageFrameType> {
+impl MessageHandler for V16MessageHandler {
+  fn parse_ocpp_message(&self, text: &str) -> Result<MessageFrameType> {
     let arr: Vec<Value> = serde_json::from_str(text)?;
 
     match arr.first().and_then(|v| v.as_u64()) {
@@ -38,7 +38,7 @@ impl OcppMessageHandler for MessageHandler {
         let action = OcppAction::from_str(action_string.as_str())
           .map_err(|err| anyhow::anyhow!("Invalid OCPP action: {}", err))?;
 
-        Ok(OcppMessageFrameType::V1_6(OcppMessageFrame::Call {
+        Ok(MessageFrameType::V1_6(MessageFrame::Call {
           msg_id,
           action,
           payload,
@@ -48,7 +48,7 @@ impl OcppMessageHandler for MessageHandler {
         let msg_id = arr[1].as_str().unwrap_or("").to_string();
         let payload = arr[2].clone();
 
-        Ok(OcppMessageFrameType::V1_6(OcppMessageFrame::CallResult {
+        Ok(MessageFrameType::V1_6(MessageFrame::CallResult {
           msg_id,
           payload,
         }))
@@ -58,7 +58,7 @@ impl OcppMessageHandler for MessageHandler {
         let error_code = arr[2].as_str().unwrap_or("").to_string();
         let description = arr[3].as_str().unwrap_or("").to_string();
 
-        Ok(OcppMessageFrameType::V1_6(OcppMessageFrame::CallError {
+        Ok(MessageFrameType::V1_6(MessageFrame::CallError {
           msg_id,
           error_code,
           description,
@@ -69,9 +69,9 @@ impl OcppMessageHandler for MessageHandler {
   }
 
   async fn handle_text_message(&mut self, text: &str) -> Result<Option<String>> {
-    if let OcppMessageFrameType::V1_6(ocpp_message) = self.parse_ocpp_message(text)? {
+    if let MessageFrameType::V1_6(ocpp_message) = self.parse_ocpp_message(text)? {
       match ocpp_message {
-        OcppMessageFrame::Call {
+        MessageFrame::Call {
           msg_id,
           action,
           payload,
@@ -80,12 +80,12 @@ impl OcppMessageHandler for MessageHandler {
           debug!(?action, msg_id, ?payload);
           return self.handle_call(&msg_id, &action, &payload).await;
         }
-        OcppMessageFrame::CallResult { msg_id, payload } => {
+        MessageFrame::CallResult { msg_id, payload } => {
           info!("🔌 [🟢 CallResult]");
           debug!(msg_id, ?payload);
           return self.handle_call_result(&msg_id, &payload).await;
         }
-        OcppMessageFrame::CallError {
+        MessageFrame::CallError {
           msg_id,
           error_code,
           description,
@@ -101,7 +101,7 @@ impl OcppMessageHandler for MessageHandler {
   }
 }
 
-impl MessageHandler {
+impl V16MessageHandler {
   async fn handle_ocpp_request<Req, Res, F, Fut>(
     msg_id: &str,
     payload: Value,
@@ -116,7 +116,7 @@ impl MessageHandler {
     let request: Req = serde_json::from_value(payload)?;
     let response = make_response(request).await?;
 
-    let ocpp_message = OcppMessageFrame::<OcppAction>::CallResult {
+    let ocpp_message = MessageFrame::<OcppAction>::CallResult {
       msg_id: msg_id.to_string(),
       payload: serde_json::to_value(&response)?,
     };

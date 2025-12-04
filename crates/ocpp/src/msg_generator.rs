@@ -3,20 +3,18 @@ use serde_json::Value;
 
 use crate::types::CommonConnectorStatusType;
 
-pub trait MessageBuilderTrait {
+pub trait MessageBuilder {
   fn to_call_frame(&self) -> Value;
 }
 
 #[async_trait]
-pub trait MessageGeneratorTrait: Send {
-  type StatusType: Send + Into<CommonConnectorStatusType>;
-
+pub trait MessageGenerator: Send {
   async fn boot_notification(&self) -> Value;
   async fn heartbeat(&self) -> Value;
   async fn authorize(&self) -> Value;
   async fn start_transaction(&self) -> Value;
   async fn stop_transaction(&self) -> Value;
-  async fn status_notification(&self, status: Self::StatusType) -> Value;
+  async fn status_notification(&self, status: CommonConnectorStatusType) -> Value;
   async fn meter_values(&self) -> Value;
   async fn diagnostics_status_notification(&self) -> Value;
   async fn firmware_status_notification(&self) -> Value;

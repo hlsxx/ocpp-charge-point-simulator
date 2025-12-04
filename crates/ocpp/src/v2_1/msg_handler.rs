@@ -1,19 +1,20 @@
-use crate::msg_handler::{OcppMessageFrameType, OcppMessageHandler};
+use crate::msg_handler::{MessageFrameType, MessageHandler};
+
 use anyhow::Result;
 use async_trait::async_trait;
-pub struct MessageHandler {}
 
-#[allow(clippy::new_without_default)]
-impl MessageHandler {
+pub struct V21MessageHandler {}
+
+impl V21MessageHandler {
   pub fn new() -> Self {
     Self {}
   }
 }
 
 #[async_trait]
-impl OcppMessageHandler for MessageHandler {
+impl MessageHandler for V21MessageHandler {
   #[allow(unused)]
-  fn parse_ocpp_message(&self, text: &str) -> Result<OcppMessageFrameType> {
+  fn parse_ocpp_message(&self, text: &str) -> Result<MessageFrameType> {
     !unimplemented!()
   }
 

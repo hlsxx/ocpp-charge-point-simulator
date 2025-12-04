@@ -5,22 +5,31 @@ use futures_util::future::join_all;
 use tokio::task::JoinHandle;
 use tracing::info;
 
-use cp::ChargePoint;
 use colored::Colorize;
 use common::{ChargePointConfig, Config, ImplicitChargePointConfig};
+use cp::{dynamic::ChargePointDynamic, idle::ChargePointIdle};
+
+use crate::cli::BehaviorMode;
 
 pub struct Simulator {
+  mode: BehaviorMode,
   config: Config,
 }
 
 impl Simulator {
-  pub fn new(config: Config) -> Self {
+  pub fn new(mode: BehaviorMode, config: Config) -> Self {
     info!(
       "{}",
-      format!("ocpp-charge-point-simulator v{}", env!("CARGO_PKG_VERSION")).cyan()
+      format!("ocpp-charge-point-simulator v{}", env!("CARGO_PKG_VERSION")).cyan(),
     );
 
-    Self { config }
+    info!(
+      "{} [{}]",
+      format!("{}", mode).purple(),
+      format!("{}", mode.description())
+    );
+
+    Self { mode, config }
   }
 
   /// Reads the configured charge point definitions and starts virtual charge points.
@@ -43,13 +52,23 @@ impl Simulator {
     let general_config = Arc::new(self.config.general.clone());
     for cp_config in all_cps {
       let general_config = general_config.clone();
-      let handle = tokio::spawn(async move {
-        let mut charger = ChargePoint::new(general_config, cp_config);
 
-        if let Err(e) = charger.run().await {
-          eprintln!("Client failed: {:?}", e);
-        }
-      });
+      let handle = match self.mode {
+        BehaviorMode::Idle => tokio::spawn(async move {
+          let mut cp_idle = ChargePointIdle::new(general_config, cp_config);
+
+          if let Err(e) = cp_idle.run().await {
+            eprintln!("Charge point [Idle] failed: {:?}", e);
+          }
+        }),
+        BehaviorMode::Dynamic => tokio::spawn(async move {
+          let mut cp_dynamic = ChargePointDynamic::new(general_config, cp_config);
+
+          if let Err(e) = cp_dynamic.run().await {
+            eprintln!("Charge point [Dynamic] failed: {:?}", e);
+          }
+        }),
+      };
 
       handles.push(handle);
     }

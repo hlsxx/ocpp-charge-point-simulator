@@ -1,6 +1,5 @@
 pub mod shared_data;
-
-use std::{fmt::Display, fs};
+use std::{fmt::Display, fs, path::Path};
 
 use anyhow::Result;
 use serde::Deserialize;
@@ -81,8 +80,8 @@ pub struct Config {
 }
 
 impl Config {
-  pub fn try_load() -> Result<Self> {
-    let config: Self = toml::from_str(&fs::read_to_string("config.toml")?)?;
+  pub fn try_load(config_path: impl AsRef<Path>) -> Result<Self> {
+    let config: Self = toml::from_str(&fs::read_to_string(config_path)?)?;
     Ok(config)
   }
 }

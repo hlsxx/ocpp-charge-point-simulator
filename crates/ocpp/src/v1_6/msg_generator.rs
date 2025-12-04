@@ -22,7 +22,7 @@ use tracing::{debug, info};
 use uuid::Uuid;
 
 use crate::mock_data::MockData;
-use crate::msg_generator::{MessageGeneratorConfig, MessageGeneratorTrait};
+use crate::msg_generator::{MessageGenerator, MessageGeneratorConfig};
 use crate::types::CommonConnectorStatusType;
 
 use super::types::OcppAction;
@@ -71,16 +71,14 @@ impl FrameBuilder {
   }
 }
 
-pub struct MessageGenerator {
+pub struct V16MessageGenerator {
   config: MessageGeneratorConfig,
   shared_data: SharedData<OcppAction>,
   id_counter: AtomicUsize,
 }
 
 #[async_trait]
-impl MessageGeneratorTrait for MessageGenerator {
-  type StatusType = CommonConnectorStatusType;
-
+impl MessageGenerator for V16MessageGenerator {
   async fn boot_notification(&self) -> Value {
     self
       .build_call(
@@ -141,7 +139,7 @@ impl MessageGeneratorTrait for MessageGenerator {
       .await
   }
 
-  async fn status_notification(&self, status: Self::StatusType) -> Value {
+  async fn status_notification(&self, status: CommonConnectorStatusType) -> Value {
     self
       .build_call(
         OcppAction::StatusNotification,
@@ -214,7 +212,7 @@ impl MessageGeneratorTrait for MessageGenerator {
   }
 }
 
-impl MessageGenerator {
+impl V16MessageGenerator {
   pub fn new(config: MessageGeneratorConfig, shared_data: SharedData<OcppAction>) -> Self {
     Self {
       config,

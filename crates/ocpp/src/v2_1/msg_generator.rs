@@ -22,13 +22,13 @@ use rust_ocpp::v2_0_1::enumerations::boot_reason_enum_type::BootReasonEnumType;
 use serde::Serialize;
 use serde_json::{Value, json};
 
-use crate::msg_generator::{MessageGeneratorConfig, MessageGeneratorTrait};
+use crate::msg_generator::{MessageGenerator, MessageGeneratorConfig};
 use crate::types::CommonConnectorStatusType;
 use uuid::Uuid;
 
 use super::types::OcppAction;
 
-pub struct MessageGenerator {
+pub struct V21MessageGenerator {
   config: MessageGeneratorConfig,
   id_counter: AtomicUsize,
 }
@@ -72,9 +72,7 @@ impl FrameBuilder {
 }
 
 #[async_trait]
-impl MessageGeneratorTrait for MessageGenerator {
-  type StatusType = CommonConnectorStatusType;
-
+impl MessageGenerator for V21MessageGenerator {
   // Charger -> CSMS
 
   async fn boot_notification(&self) -> Value {
@@ -144,7 +142,7 @@ impl MessageGeneratorTrait for MessageGenerator {
     )
   }
 
-  async fn status_notification(&self, status: Self::StatusType) -> Value {
+  async fn status_notification(&self, status: CommonConnectorStatusType) -> Value {
     FrameBuilder::build_call(
       OcppAction::StatusNotification,
       StatusNotificationRequest {
@@ -196,7 +194,7 @@ impl MessageGeneratorTrait for MessageGenerator {
   }
 }
 
-impl MessageGenerator {
+impl V21MessageGenerator {
   pub fn new(config: MessageGeneratorConfig) -> Self {
     Self {
       config,

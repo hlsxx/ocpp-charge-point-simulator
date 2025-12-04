@@ -10,7 +10,7 @@ use super::{
 };
 
 #[derive(Debug, Serialize, Clone)]
-pub enum OcppMessageFrame<A> {
+pub enum MessageFrame<A> {
   Call {
     msg_id: String,
     action: A,
@@ -27,20 +27,20 @@ pub enum OcppMessageFrame<A> {
   },
 }
 
-impl<A: Serialize> OcppMessageFrame<A> {
+impl<A: Serialize> MessageFrame<A> {
   pub fn to_frame(&self) -> Value {
     match self {
-      OcppMessageFrame::Call {
+      MessageFrame::Call {
         msg_id,
         action,
         payload,
       } => {
         json!([2, msg_id, action, payload])
       }
-      OcppMessageFrame::CallResult { msg_id, payload } => {
+      MessageFrame::CallResult { msg_id, payload } => {
         json!([3, msg_id, payload])
       }
-      OcppMessageFrame::CallError {
+      MessageFrame::CallError {
         msg_id,
         error_code,
         description,
@@ -52,13 +52,13 @@ impl<A: Serialize> OcppMessageFrame<A> {
 }
 
 #[derive(Debug, Clone)]
-pub enum OcppMessageFrameType {
-  V1_6(OcppMessageFrame<V16OcppAction>),
-  V2_0_1(OcppMessageFrame<V201OcppAction>),
-  V2_1(OcppMessageFrame<V21OcppAction>),
+pub enum MessageFrameType {
+  V1_6(MessageFrame<V16OcppAction>),
+  V2_0_1(MessageFrame<V201OcppAction>),
+  V2_1(MessageFrame<V21OcppAction>),
 }
 
-impl OcppMessageFrameType {
+impl MessageFrameType {
   pub fn to_frame(&self) -> Value {
     match self {
       Self::V1_6(msg_frame) => msg_frame.to_frame(),
@@ -69,7 +69,7 @@ impl OcppMessageFrameType {
 }
 
 #[async_trait]
-pub trait OcppMessageHandler: SharedDataValue {
+pub trait MessageHandler: SharedDataValue {
   async fn handle_text_message(&mut self, text: &str) -> Result<Option<String>>;
-  fn parse_ocpp_message(&self, text: &str) -> Result<OcppMessageFrameType>;
+  fn parse_ocpp_message(&self, text: &str) -> Result<MessageFrameType>;
 }

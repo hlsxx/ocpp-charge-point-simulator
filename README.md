@@ -6,6 +6,12 @@ A simple **OCPP charge point simulator** written in Rust.
   <img src="https://github.com/hlsxx/ocpp-charge-point-simulator/blob/master/blob/example.png" alt="Example" style="width:80%; max-height:400px; border-radius:10px; box-shadow:0 0 10px rgba(0,0,0,0.3);" />
 </div>
 
+## Mode (Behavior)
+
+### Dynamic
+
+### Idle
+
 ---
 
 ## 🚀 Features
