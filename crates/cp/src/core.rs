@@ -21,7 +21,7 @@ impl ChargePointClient {
     info!(target: "simulator", "connecting to CSMS at {}", uri.to_string().cyan());
 
     let request = ClientRequestBuilder::new(uri)
-      .with_header("Authorization", "Basic dHNzMDR0ZXN0OnBhc3N3b3Jk")
+      .with_header("Authorization", &config.auth_header)
       .with_sub_protocol(OcppVersion::V1_6.to_string());
 
     let (ws_stream, _) = connect_async(request).await?;

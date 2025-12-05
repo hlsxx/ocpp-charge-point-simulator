@@ -15,8 +15,14 @@ use tungstenite::Message;
 
 use super::core::ChargePointClient;
 
+/// An `dynamic mode` charge point
+///
+/// Represents an `dynamic` mode charge point
 pub struct ChargePointDynamic {
+  /// General config
   general_config: Arc<GeneralConfig>,
+
+  // Specific chage point config
   config: ChargePointConfig,
 }
 
@@ -28,6 +34,8 @@ impl ChargePointDynamic {
     }
   }
 
+  /// Runs a charge point in `dynamic mode` that sends messages at specific intervals to the CSMS server.
+  /// In dynamic mode, the charge point only sends messages without actively listening for incoming data.
   pub async fn run(&mut self) -> Result<()> {
     let ws_stream = ChargePointClient::connect(&self.general_config, &self.config).await?;
     let (mut ws_tx, mut ws_rx) = ws_stream.split();

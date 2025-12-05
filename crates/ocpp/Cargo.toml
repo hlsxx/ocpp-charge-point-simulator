@@ -14,3 +14,10 @@ chrono = "0.4.41"
 anyhow = "1.0.98"
 async-trait = "0.1.88"
 rand = "0.9.1"
+
+[features]
+default = ["ocpp1_6"]
+
+ocpp1_6 = []
+ocpp2_0_1 = []
+ocpp2_1 = []

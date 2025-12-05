@@ -64,6 +64,7 @@ pub struct GeneralConfig {
 #[derive(Debug, Deserialize, Clone)]
 pub struct ChargePointConfig {
   pub id: String,
+  pub auth_header: String,
   pub boot_delay_interval: u64,
   pub heartbeat_interval: u64,
   pub status_interval: u64,

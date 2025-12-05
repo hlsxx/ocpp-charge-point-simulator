@@ -23,26 +23,31 @@ pub fn create_ocpp_handlers(
   match ocpp_version {
     #[cfg(feature = "ocpp1_6")]
     OcppVersion::V1_6 => {
-      let shared_data = SharedData::<ocpp::v1_6::types::OcppAction>::default();
+      use crate::v1_6::{
+        msg_generator::V16MessageGenerator, msg_handler::V16MessageHandler, types::OcppAction,
+      };
+      use common::SharedData;
+
+      let shared_data = SharedData::<OcppAction>::default();
       (
-        Box::new(Ocpp16MessageGenerator::new(
+        Box::new(V16MessageGenerator::new(
           msg_generator_config,
           shared_data.clone(),
         )),
-        Box::new(Ocpp16MessageHandler::new(shared_data.clone())),
+        Box::new(V16MessageHandler::new(shared_data.clone())),
       )
     }
 
     #[cfg(feature = "ocpp2_0_1")]
     OcppVersion::V2_0_1 => (
-      Box::new(Ocpp201MessageGenerator::new(msg_generator_config)),
-      Box::new(Ocpp201MessageHandler::new()),
+      // Box::new(Ocpp201MessageGenerator::new(msg_generator_config)),
+      // Box::new(Ocpp201MessageHandler::new()),
     ),
 
     #[cfg(feature = "ocpp2_1")]
     OcppVersion::V2_1 => (
-      Box::new(Ocpp21MessageGenerator::new(cmsg_generator_config)),
-      Box::new(Ocpp21MessageHandler::new()),
+      // Box::new(Ocpp21MessageGenerator::new(cmsg_generator_config)),
+      // Box::new(Ocpp21MessageHandler::new()),
     ),
 
     _ => panic!("OCPP version not supported in this build"),
