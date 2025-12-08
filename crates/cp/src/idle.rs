@@ -4,12 +4,14 @@ use futures::SinkExt;
 use ocpp::{
   create_ocpp_handlers,
   msg_handler::{MessageFrame, MessageFrameType},
+  types::CommonOcppAction,
   v1_6::{msg_handler::V16MessageHandler, types::OcppAction},
 };
 
-use std::{sync::Arc, time::Duration};
+use std::{collections::HashMap, sync::Arc, time::Duration};
 use tokio::{
   select,
+  sync::oneshot,
   time::{interval, sleep},
 };
 use tungstenite::Message;
@@ -75,23 +77,51 @@ impl ChargePointIdle {
                         // 2. Prepare connector
                         let connector_preparing = msg_generator.status_notification(ocpp::types::CommonConnectorStatusType::Preparing).await;
                         ws_tx.send(Message::Text(connector_preparing.to_string().into())).await?;
-
-                        // Simulate HW connector waiting
-                        sleep(Duration::from_secs(3)).await;
-
-                        // 3. Connector charging
-                        let connector_charging = msg_generator.status_notification(ocpp::types::CommonConnectorStatusType::Charging).await;
-                        ws_tx.send(Message::Text(connector_charging.to_string().into())).await?;
-
-                        // TODO: This is timeout for assign transaction_id from the CSMS call result
-                        tokio::time::sleep(Duration::from_secs(5)).await;
-                        loop {
-                          sleep(Duration::from_secs(1)).await;
-                          let meter_values = msg_generator.meter_values().await;
-                          ws_tx.send(Message::Text(meter_values.to_string().into())).await?;
-                        }
                       },
                       _ => warn!("Other action")
+                    }
+                  },
+                  MessageFrame::CallResult {
+                    msg_id,
+                    payload
+                  } => {
+                    println!("Got call result {} {:?}", msg_id, payload);
+                    match msg_handler.handle_call_result(&msg_id, &payload).await? {
+                      Some(common_ocpp_msg) => {
+                          match common_ocpp_msg {
+                            CommonOcppAction::StartTransaction => {
+                              // Simulate HW connector waiting
+                              sleep(Duration::from_secs(3)).await;
+
+                              // 3. Connector charging
+                              let connector_charging = msg_generator.status_notification(ocpp::types::CommonConnectorStatusType::Charging).await;
+                              ws_tx.send(Message::Text(connector_charging.to_string().into())).await?;
+
+                              // TODO
+                              let mut cnt = 10;
+                              loop {
+                                if cnt == 0 {
+                                  break;
+                                }
+
+                                sleep(Duration::from_secs(1)).await;
+                                let meter_values = msg_generator.meter_values().await;
+                                ws_tx.send(Message::Text(meter_values.to_string().into())).await?;
+                                cnt -= 1;
+                              }
+
+                              // 4. Transaction stop
+                              let stop_transaction = msg_generator.stop_transaction().await;
+                              ws_tx.send(Message::Text(stop_transaction.to_string().into())).await?;
+
+                              // 5. Connector available
+                              let connector_charging = msg_generator.status_notification(ocpp::types::CommonConnectorStatusType::Available).await;
+                              ws_tx.send(Message::Text(connector_charging.to_string().into())).await?;
+                            },
+                            _ => {}
+                          }
+                      },
+                      None => {}
                     }
                   },
                   _ => {}

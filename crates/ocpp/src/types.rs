@@ -3,6 +3,40 @@ use rust_ocpp::{
   v2_0_1::enumerations::connector_status_enum_type::ConnectorStatusEnumType,
 };
 
+pub enum CommonOcppAction {
+  // Unknown, // Default
+  // CP → CSMS
+  // BootNotification,
+  // Heartbeat,
+  // Authorize,
+  StartTransaction,
+  StopTransaction,
+  // StatusNotification,
+  // MeterValues,
+  // DiagnosticsStatusNotification,
+  // FirmwareStatusNotification,
+  // DataTransfer,
+
+  // CSMS → CP
+  // RemoteStartTransaction,
+  // RemoteStopTransaction,
+  // Reset,
+  // ChangeAvailability,
+  // ChangeConfiguration,
+  // GetConfiguration,
+  // ClearCache,
+  // UpdateFirmware,
+  // GetDiagnostics,
+  // UnlockConnector,
+  // CancelReservation,
+  // ReserveNow,
+  // SetChargingProfile,
+  // ClearChargingProfile,
+  // GetCompositeSchedule,
+  // GetLocalListVersion,
+  // SendLocalList,
+}
+
 #[derive(Debug, Clone)]
 pub enum CommonConnectorStatusType {
   Available,

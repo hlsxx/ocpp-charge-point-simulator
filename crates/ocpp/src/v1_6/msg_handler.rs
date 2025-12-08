@@ -1,7 +1,10 @@
 use std::{fmt::Debug, str::FromStr};
 
 use super::types::OcppAction;
-use crate::msg_handler::{MessageFrame, MessageFrameType, MessageHandler};
+use crate::{
+  msg_handler::{MessageFrame, MessageFrameType, MessageHandler},
+  types::CommonOcppAction,
+};
 use anyhow::{Result, anyhow};
 use async_trait::async_trait;
 use common::SharedData;
@@ -85,7 +88,8 @@ impl MessageHandler for V16MessageHandler {
         MessageFrame::CallResult { msg_id, payload } => {
           info!("🔌 [🟢 CallResult]");
           debug!(msg_id, ?payload);
-          return self.handle_call_result(&msg_id, &payload).await;
+          self.handle_call_result(&msg_id, &payload).await?;
+          return Ok(None);
         }
         MessageFrame::CallError {
           msg_id,
@@ -100,6 +104,25 @@ impl MessageHandler for V16MessageHandler {
     }
 
     anyhow::bail!("Invalid text message")
+  }
+
+  async fn handle_call_result(
+    &self,
+    msg_id: &str,
+    payload: &Value,
+  ) -> Result<Option<CommonOcppAction>> {
+    let ocpp_action = self.shared_data.get_msg(msg_id).await;
+    match ocpp_action {
+      Some(ocpp_action) => match ocpp_action {
+        OcppAction::StartTransaction => {
+          let res: StartTransactionResponse = serde_json::from_value(payload.clone())?;
+          self.shared_data.transaction_id(res.transaction_id).await;
+          Ok(Some(CommonOcppAction::StartTransaction))
+        }
+        _ => Ok(None),
+      },
+      None => anyhow::bail!("msg_id not found"),
+    }
   }
 }
 
@@ -165,21 +188,5 @@ impl V16MessageHandler {
 
   async fn handle_call_error(&self, _msg_id: &str) -> Result<Option<String>> {
     Ok(None)
-  }
-
-  async fn handle_call_result(&self, msg_id: &str, payload: &Value) -> Result<Option<String>> {
-    let ocpp_action = self.shared_data.get_msg(msg_id).await;
-
-    match ocpp_action {
-      Some(ocpp_action) => match ocpp_action {
-        OcppAction::StartTransaction => {
-          let res: StartTransactionResponse = serde_json::from_value(payload.clone())?;
-          self.shared_data.transaction_id(res.transaction_id).await;
-          Ok(None)
-        }
-        _ => Ok(None),
-      },
-      None => anyhow::bail!("msg_id not found"),
-    }
   }
 }

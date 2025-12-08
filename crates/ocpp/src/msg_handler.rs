@@ -4,6 +4,8 @@ use common::shared_data::SharedDataValue;
 use serde::{Serialize, de::DeserializeOwned};
 use serde_json::{Value, json};
 
+use crate::types::CommonOcppAction;
+
 use super::{
   v1_6::types::OcppAction as V16OcppAction, v2_0_1::types::OcppAction as V201OcppAction,
   v2_1::types::OcppAction as V21OcppAction,
@@ -71,6 +73,12 @@ impl MessageFrameType {
 #[async_trait]
 pub trait MessageHandler: SharedDataValue {
   async fn handle_text_message(&mut self, text: &str) -> Result<Option<String>>;
+
+  async fn handle_call_result(
+    &self,
+    msg_id: &str,
+    payload: &Value,
+  ) -> Result<Option<CommonOcppAction>>;
 
   fn parse_ocpp_message(&self, text: &str) -> Result<MessageFrameType>;
 }
