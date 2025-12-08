@@ -1,12 +1,21 @@
 use anyhow::Result;
 use common::{ChargePointConfig, GeneralConfig};
 use futures::SinkExt;
-use ocpp::create_ocpp_handlers;
-use std::sync::Arc;
+use ocpp::{
+  create_ocpp_handlers,
+  msg_handler::{MessageFrame, MessageFrameType},
+  v1_6::{msg_handler::V16MessageHandler, types::OcppAction},
+};
+
+use std::{sync::Arc, time::Duration};
+use tokio::{
+  select,
+  time::{interval, sleep},
+};
 use tungstenite::Message;
 
 use futures_util::StreamExt;
-use tracing::info;
+use tracing::{error, info, warn};
 
 use super::core::ChargePointClient;
 
@@ -30,21 +39,76 @@ impl ChargePointIdle {
   }
 
   /// Runs a charge point in `idle mode` that sends messages at specific intervals to the CSMS server.
-  /// In idle mode, the charge point sends and also listening for messages.
+  /// In idle mode, the charge point sends and also listens for new messages.
   pub async fn run(&mut self) -> Result<()> {
     let ws_stream = ChargePointClient::connect(&self.general_config, &self.config).await?;
-    let (mut ws_tx, mut _ws_rx) = ws_stream.split();
+    let (mut ws_tx, mut ws_rx) = ws_stream.split();
 
-    let (msg_generator, mut msg_handler) =
+    let (msg_generator, msg_handler) =
       create_ocpp_handlers(self.general_config.ocpp_version.clone());
 
-    let heartbeat = msg_generator.heartbeat().await;
+    let mut heartbeat_interval = interval(Duration::from_secs(self.config.heartbeat_interval));
 
-    ws_tx
-      .send(Message::Text(heartbeat.to_string().into()))
-      .await
-      .unwrap();
+    loop {
+      select! {
+        _ = heartbeat_interval.tick() => {
+          ws_tx.send(Message::Text(msg_generator.heartbeat().await.to_string().into())).await?;
+        },
+        msg = ws_rx.next() => {
+          match msg {
+            Some(Ok(Message::Text(text_msg))) => {
+              if let MessageFrameType::V1_6(ocpp_msg_frame) = msg_handler.parse_ocpp_message(&text_msg)? {
+                match ocpp_msg_frame {
+                  MessageFrame::Call {
+                    action,
+                    payload,
+                    ..
+                  } => {
+                    match action {
+                      OcppAction::RemoteStartTransaction => {
+                        let action_payload = V16MessageHandler::parse_remote_start_transaction_payload(payload)?;
 
+                        // 1. Transaction start
+                        let start_transaction = msg_generator.start_transaction(Some(&action_payload.id_tag)).await;
+                        ws_tx.send(Message::Text(start_transaction.to_string().into())).await?;
+
+                        // 2. Prepare connector
+                        let connector_preparing = msg_generator.status_notification(ocpp::types::CommonConnectorStatusType::Preparing).await;
+                        ws_tx.send(Message::Text(connector_preparing.to_string().into())).await?;
+
+                        // Simulate HW connector waiting
+                        sleep(Duration::from_secs(3)).await;
+
+                        // 3. Connector charging
+                        let connector_charging = msg_generator.status_notification(ocpp::types::CommonConnectorStatusType::Charging).await;
+                        ws_tx.send(Message::Text(connector_charging.to_string().into())).await?;
+
+                        // TODO: This is timeout for assign transaction_id from the CSMS call result
+                        tokio::time::sleep(Duration::from_secs(5)).await;
+                        loop {
+                          sleep(Duration::from_secs(1)).await;
+                          let meter_values = msg_generator.meter_values().await;
+                          ws_tx.send(Message::Text(meter_values.to_string().into())).await?;
+                        }
+                      },
+                      _ => warn!("Other action")
+                    }
+                  },
+                  _ => {}
+                }
+              } else {
+                error!("Unknown message");
+              }
+            },
+            Some(other_msg) => warn!("Another message {other_msg:?}"),
+            None => break
+          }
+        }
+        _ = tokio::signal::ctrl_c() => break
+      }
+    }
+
+    ws_tx.close().await?;
     info!("Client shutdown");
 
     Ok(())

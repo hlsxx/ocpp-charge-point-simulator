@@ -2,11 +2,13 @@ use std::{fmt::Debug, str::FromStr};
 
 use super::types::OcppAction;
 use crate::msg_handler::{MessageFrame, MessageFrameType, MessageHandler};
-use anyhow::Result;
+use anyhow::{Result, anyhow};
 use async_trait::async_trait;
 use common::SharedData;
 use rust_ocpp::v1_6::messages::{
   get_configuration::{GetConfigurationRequest, GetConfigurationResponse},
+  remote_start_transaction::RemoteStartTransactionRequest,
+  remote_stop_transaction::RemoteStopTransactionRequest,
   start_transaction::StartTransactionResponse,
 };
 
@@ -102,6 +104,13 @@ impl MessageHandler for V16MessageHandler {
 }
 
 impl V16MessageHandler {
+  pub fn parse_remote_start_transaction_payload(
+    payload: serde_json::Value,
+  ) -> Result<RemoteStartTransactionRequest> {
+    let request: RemoteStartTransactionRequest = serde_json::from_value(payload)?;
+    Ok(request)
+  }
+
   async fn handle_ocpp_request<Req, Res, F, Fut>(
     msg_id: &str,
     payload: Value,

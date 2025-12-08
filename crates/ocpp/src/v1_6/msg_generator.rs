@@ -109,13 +109,15 @@ impl MessageGenerator for V16MessageGenerator {
       .await
   }
 
-  async fn start_transaction(&self) -> Value {
+  async fn start_transaction(&self, tag_id: Option<&str>) -> Value {
     self
       .build_call(
         OcppAction::StartTransaction,
         StartTransactionRequest {
           connector_id: 1,
-          id_tag: self.config.id_tag.clone(),
+          id_tag: tag_id
+            .map(|val| val.to_string())
+            .unwrap_or(self.config.id_tag.clone()),
           meter_start: 0,
           timestamp: chrono::Utc::now(),
           ..Default::default()
@@ -156,6 +158,7 @@ impl MessageGenerator for V16MessageGenerator {
 
   async fn meter_values(&self) -> Value {
     let transaction_id = self.shared_data.get_transaction_id().await;
+    println!("tranasction id {:?}", transaction_id);
 
     if let Some(transaction_id) = transaction_id {
       self

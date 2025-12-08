@@ -68,7 +68,7 @@ impl ChargePointDynamic {
       select! {
         _ = time::sleep_until(next_start_tx), if !transaction_active => {
           let _ = ws_tx.send(
-            Message::Text(msg_generator.start_transaction().await.to_string().into())
+            Message::Text(msg_generator.start_transaction(None).await.to_string().into())
           ).await;
 
           let _ = ws_tx.send(
@@ -153,9 +153,12 @@ impl ChargePointDynamic {
             _ => {}
           }
         }
+
+        _ = tokio::signal::ctrl_c() => break
       }
     }
 
+    ws_tx.close().await?;
     info!("Client shutdown");
 
     Ok(())

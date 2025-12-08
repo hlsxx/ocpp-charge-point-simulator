@@ -1,7 +1,7 @@
 use anyhow::Result;
 use async_trait::async_trait;
 use common::shared_data::SharedDataValue;
-use serde::Serialize;
+use serde::{Serialize, de::DeserializeOwned};
 use serde_json::{Value, json};
 
 use super::{
@@ -71,5 +71,6 @@ impl MessageFrameType {
 #[async_trait]
 pub trait MessageHandler: SharedDataValue {
   async fn handle_text_message(&mut self, text: &str) -> Result<Option<String>>;
+
   fn parse_ocpp_message(&self, text: &str) -> Result<MessageFrameType>;
 }

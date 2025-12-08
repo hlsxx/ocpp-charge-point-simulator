@@ -108,7 +108,7 @@ impl MessageGenerator for V21MessageGenerator {
     )
   }
 
-  async fn start_transaction(&self) -> Value {
+  async fn start_transaction(&self, tag_id: Option<&str>) -> Value {
     FrameBuilder::build_call(
       OcppAction::TransactionEvent,
       TransactionEventRequest {
