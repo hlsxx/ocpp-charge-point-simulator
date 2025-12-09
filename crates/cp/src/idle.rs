@@ -104,7 +104,7 @@ impl ChargePointIdle {
                                   break;
                                 }
 
-                                sleep(Duration::from_secs(1)).await;
+                                sleep(Duration::from_secs(3)).await;
                                 let meter_values = msg_generator.meter_values().await;
                                 ws_tx.send(Message::Text(meter_values.to_string().into())).await?;
                                 cnt -= 1;

@@ -1,0 +1,36 @@
+[general]
+debug_mode = true
+server_url = "ws://im.tssgroup.sk/ocpp/ws/charge-point"
+ocpp_version = "ocpp1.6"
+
+# Optional: Implicit charge points (generates multiple CPs automatically)
+#[implicit_charge_points]
+#count = 5
+#prefix = "CP"
+#auth_header = "Basic dHNzMDR0ZXN0OnBhc3N3b3Jk"
+#boot_delay_range = [1, 60]
+#heartbeat_interval_range = [30, 90]
+#status_interval_range = [10, 60]
+#start_tx_after_range = [5, 15]
+#stop_tx_after_range = [20, 60]
+
+# Explicitly defined charge points
+[[charge_points]]
+id = "CP100001"
+auth_header = "Basic Q1AxMDAwMDE6cGFzc3dvcmQ="
+boot_delay_interval = 0
+heartbeat_interval = 45
+status_interval = 10
+start_tx_after = 5
+stop_tx_after = 20
+id_tags = ['TEST001']
+
+# [[charge_points]]
+# id = "CP100002"
+# auth_header = "Basic Q1AxMDAwMDI6cGFzc3dvcmQ="
+# boot_delay_interval = 10
+# heartbeat_interval = 45
+# status_interval = 15
+# start_tx_after = 10
+# stop_tx_after = 30
+# id_tags = ['TEST001']
