@@ -67,6 +67,8 @@ pub struct ChargePointConfig {
   pub auth_header: String,
   pub boot_delay_interval: u64,
   pub heartbeat_interval: u64,
+  pub txn_meter_values_interval: u64,
+  pub txn_meter_values_max_count: u64,
   pub status_interval: u64,
   pub start_tx_after: u64,
   pub stop_tx_after: u64,

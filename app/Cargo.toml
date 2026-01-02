@@ -1,6 +1,6 @@
 [package]
 name = "ocpp-charge-point-simulator"
-version = "0.0.1"
+version = "0.0.2"
 edition = "2024"
 
 [[bin]]
@@ -22,3 +22,13 @@ serde_json = { workspace = true }
 rand = { workspace = true }
 colored = { workspace = true }
 futures-util = { workspace = true }
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1
+strip = true
+panic = "abort"
+
+[profile.dev]
+opt-level = 0

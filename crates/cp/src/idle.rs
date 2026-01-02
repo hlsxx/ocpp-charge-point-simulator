@@ -8,16 +8,17 @@ use ocpp::{
   v1_6::{msg_handler::V16MessageHandler, types::OcppAction},
 };
 
-use std::{collections::HashMap, sync::Arc, time::Duration};
+use std::{sync::Arc, time::Duration};
 use tokio::{
   select,
-  sync::oneshot,
   time::{interval, sleep},
 };
 use tungstenite::Message;
 
 use futures_util::StreamExt;
 use tracing::{error, info, warn};
+
+use crate::{session::TxnSession, utils::MessageBuilder};
 
 use super::core::ChargePointClient;
 
@@ -49,13 +50,39 @@ impl ChargePointIdle {
     let (msg_generator, msg_handler) =
       create_ocpp_handlers(self.general_config.ocpp_version.clone());
 
+    let mut txn_session = TxnSession::new(
+      self.config.txn_meter_values_interval,
+      self.config.txn_meter_values_max_count,
+    );
+
     let mut heartbeat_interval = interval(Duration::from_secs(self.config.heartbeat_interval));
 
     loop {
       select! {
+        // Charge point heart beats
         _ = heartbeat_interval.tick() => {
-          ws_tx.send(Message::Text(msg_generator.heartbeat().await.to_string().into())).await?;
+          ws_tx.send(MessageBuilder::new_text(msg_generator.heartbeat().await)).await?;
         },
+
+        // Transaction (meter_values) session
+        _ = txn_session.tick(), if txn_session.is_running() => {
+          let meter_values = msg_generator.meter_values().await;
+          ws_tx.send(MessageBuilder::new_text(meter_values)).await?;
+
+          txn_session.increment();
+
+          if !txn_session.is_running() {
+            // Transaction stop
+            let stop_transaction = msg_generator.stop_transaction().await;
+            ws_tx.send(MessageBuilder::new_text(stop_transaction)).await?;
+
+            // Sets a connector as available
+            let connector_charging = msg_generator.status_notification(ocpp::types::CommonConnectorStatusType::Available).await;
+            ws_tx.send(MessageBuilder::new_text(connector_charging)).await?;
+          }
+        },
+
+        // Handles a CSMS messages
         msg = ws_rx.next() => {
           match msg {
             Some(Ok(Message::Text(text_msg))) => {
@@ -70,13 +97,22 @@ impl ChargePointIdle {
                       OcppAction::RemoteStartTransaction => {
                         let action_payload = V16MessageHandler::parse_remote_start_transaction_payload(payload)?;
 
-                        // 1. Transaction start
+                        // Transaction begin
                         let start_transaction = msg_generator.start_transaction(Some(&action_payload.id_tag)).await;
-                        ws_tx.send(Message::Text(start_transaction.to_string().into())).await?;
+                        ws_tx.send(MessageBuilder::new_text(start_transaction)).await?;
 
-                        // 2. Prepare connector
+                        // Sets a connector as preparing
                         let connector_preparing = msg_generator.status_notification(ocpp::types::CommonConnectorStatusType::Preparing).await;
-                        ws_tx.send(Message::Text(connector_preparing.to_string().into())).await?;
+                        ws_tx.send(MessageBuilder::new_text(connector_preparing)).await?;
+                      },
+                      OcppAction::RemoteStopTransaction => {
+                        txn_session.stop();
+
+                        let stop_transaction = msg_generator.stop_transaction().await;
+                        ws_tx.send(MessageBuilder::new_text(stop_transaction)).await?;
+
+                        let connector_available = msg_generator.status_notification(ocpp::types::CommonConnectorStatusType::Available).await;
+                        ws_tx.send(MessageBuilder::new_text(connector_available)).await?;
                       },
                       _ => warn!("Other action")
                     }
@@ -90,33 +126,14 @@ impl ChargePointIdle {
                       Some(common_ocpp_msg) => {
                           match common_ocpp_msg {
                             CommonOcppAction::StartTransaction => {
-                              // Simulate HW connector waiting
+                              // Simulates HW connector delay
                               sleep(Duration::from_secs(3)).await;
 
-                              // 3. Connector charging
+                              // Sets a connector as charging
                               let connector_charging = msg_generator.status_notification(ocpp::types::CommonConnectorStatusType::Charging).await;
-                              ws_tx.send(Message::Text(connector_charging.to_string().into())).await?;
+                              ws_tx.send(MessageBuilder::new_text(connector_charging)).await?;
 
-                              // TODO
-                              let mut cnt = 10;
-                              loop {
-                                if cnt == 0 {
-                                  break;
-                                }
-
-                                sleep(Duration::from_secs(3)).await;
-                                let meter_values = msg_generator.meter_values().await;
-                                ws_tx.send(Message::Text(meter_values.to_string().into())).await?;
-                                cnt -= 1;
-                              }
-
-                              // 4. Transaction stop
-                              let stop_transaction = msg_generator.stop_transaction().await;
-                              ws_tx.send(Message::Text(stop_transaction.to_string().into())).await?;
-
-                              // 5. Connector available
-                              let connector_charging = msg_generator.status_notification(ocpp::types::CommonConnectorStatusType::Available).await;
-                              ws_tx.send(Message::Text(connector_charging.to_string().into())).await?;
+                              txn_session.start();
                             },
                             _ => {}
                           }
@@ -134,6 +151,7 @@ impl ChargePointIdle {
             None => break
           }
         }
+
         _ = tokio::signal::ctrl_c() => break
       }
     }

@@ -88,6 +88,8 @@ impl Simulator {
         heartbeat_interval: rand::random_range(
           cfg.heartbeat_interval_range[0]..=cfg.heartbeat_interval_range[1],
         ),
+        txn_meter_values_interval: 5,
+        txn_meter_values_max_count: 60,
         status_interval: rand::random_range(
           cfg.status_interval_range[0]..=cfg.status_interval_range[1],
         ),
