@@ -3,7 +3,7 @@ use std::sync::Arc;
 use anyhow::Result;
 use futures_util::future::join_all;
 use tokio::task::JoinHandle;
-use tracing::info;
+use tracing::{error, info};
 
 use colored::Colorize;
 use common::{ChargePointConfig, Config, ImplicitChargePointConfig};
@@ -18,26 +18,24 @@ pub struct Simulator {
 
 impl Simulator {
   pub fn new(mode: BehaviorMode, config: Config) -> Self {
-    info!(
-      "{}",
-      format!("ocpp-charge-point-simulator v{}", env!("CARGO_PKG_VERSION")).cyan(),
-    );
-
-    info!(
-      "{} [{}]",
-      format!("{}", mode).purple(),
-      format!("{}", mode.description())
-    );
-
     Self { mode, config }
   }
 
-  /// Reads the configured charge point definitions and starts virtual charge points.
-  ///
-  /// Each charge point is spawned as a separate asynchronous task using `tokio::spawn`.
-  /// Both explicit charge points from the configuration file and any generated
-  /// implicit charge points are included.
+  fn print_banner(&self) {
+    info!(
+      "ocpp-charge-point-simulator v{}",
+      env!("CARGO_PKG_VERSION").cyan()
+    );
+    info!(
+      "{} [{}]",
+      self.mode.to_string().purple(),
+      self.mode.description()
+    );
+  }
+
   pub async fn run(&self) -> Result<()> {
+    self.print_banner();
+
     info!("simulator running...");
 
     let mut handles: Vec<JoinHandle<()>> = Vec::new();
@@ -58,14 +56,14 @@ impl Simulator {
           let mut cp_idle = ChargePointIdle::new(general_config, cp_config);
 
           if let Err(e) = cp_idle.run().await {
-            eprintln!("Charge point [Idle] failed: {:?}", e);
+            error!("Charge point [Idle] failed: {:?}", e);
           }
         }),
         BehaviorMode::Dynamic => tokio::spawn(async move {
           let mut cp_dynamic = ChargePointDynamic::new(general_config, cp_config);
 
           if let Err(e) = cp_dynamic.run().await {
-            eprintln!("Charge point [Dynamic] failed: {:?}", e);
+            error!("Charge point [Dynamic] failed: {:?}", e);
           }
         }),
       };
