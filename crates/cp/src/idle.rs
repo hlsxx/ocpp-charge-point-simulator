@@ -4,7 +4,7 @@ use futures::SinkExt;
 use ocpp::{
   create_ocpp_handlers,
   msg_handler::{MessageFrame, MessageFrameType},
-  types::CommonOcppAction,
+  types::{CommonConnectorStatusType, CommonOcppAction},
   v1_6::{msg_handler::V16MessageHandler, types::OcppAction},
 };
 
@@ -16,20 +16,15 @@ use tokio::{
 use tungstenite::Message;
 
 use futures_util::StreamExt;
-use tracing::{error, info, warn};
+use tracing::{debug, error, info, warn};
 
-use crate::{session::TxnSession, utils::MessageBuilder};
+use crate::{
+  core::{connect, send},
+  session::TxnSession,
+};
 
-use super::core::ChargePointClient;
-
-/// An `idle mode` charge point
-///
-/// Represents an `idle` mode charge point
 pub struct ChargePointIdle {
-  /// General config
   general_config: Arc<GeneralConfig>,
-
-  // Specific chage point config
   config: ChargePointConfig,
 }
 
@@ -41,10 +36,8 @@ impl ChargePointIdle {
     }
   }
 
-  /// Runs a charge point in `idle mode` that sends messages at specific intervals to the CSMS server.
-  /// In idle mode, the charge point sends and also listens for new messages.
   pub async fn run(&mut self) -> Result<()> {
-    let ws_stream = ChargePointClient::connect(&self.general_config, &self.config).await?;
+    let ws_stream = connect(&self.general_config, &self.config).await?;
     let (mut ws_tx, mut ws_rx) = ws_stream.split();
 
     let (msg_generator, msg_handler) =
@@ -59,26 +52,19 @@ impl ChargePointIdle {
 
     loop {
       select! {
-        // Charge point heart beats
-        _ = heartbeat_interval.tick() => {
-          ws_tx.send(MessageBuilder::text(msg_generator.heartbeat().await)).await?;
-        },
-
+        // Charge point heartbeats
+        _ = heartbeat_interval.tick() => send(&mut ws_tx, msg_generator.heartbeat().await).await?,
         // Transaction (meter_values) session
         _ = txn_session.tick(), if txn_session.is_running() => {
-          let meter_values = msg_generator.meter_values().await;
-          ws_tx.send(MessageBuilder::text(meter_values)).await?;
-
+          send(&mut ws_tx, msg_generator.meter_values().await).await?;
           txn_session.increment();
-
           if !txn_session.is_running() {
-            // Transaction stop
-            let stop_transaction = msg_generator.stop_transaction().await;
-            ws_tx.send(MessageBuilder::text(stop_transaction)).await?;
+            send(&mut ws_tx, msg_generator.stop_transaction().await).await?;
 
-            // Sets a connector as available
-            let connector_charging = msg_generator.status_notification(ocpp::types::CommonConnectorStatusType::Available).await;
-            ws_tx.send(MessageBuilder::text(connector_charging)).await?;
+            // Sets a connector to an `Available` status
+            send(&mut ws_tx, msg_generator.status_notification(
+              CommonConnectorStatusType::Available
+            ).await).await?;
           }
         },
 
@@ -97,22 +83,21 @@ impl ChargePointIdle {
                       OcppAction::RemoteStartTransaction => {
                         let action_payload = V16MessageHandler::parse_remote_start_transaction_payload(payload)?;
 
-                        // Transaction begin
-                        let start_transaction = msg_generator.start_transaction(Some(&action_payload.id_tag)).await;
-                        ws_tx.send(MessageBuilder::text(start_transaction)).await?;
+                        send(&mut ws_tx, msg_generator.start_transaction(Some(&action_payload.id_tag)).await).await?;
 
-                        // Sets a connector as preparing
-                        let connector_preparing = msg_generator.status_notification(ocpp::types::CommonConnectorStatusType::Preparing).await;
-                        ws_tx.send(MessageBuilder::text(connector_preparing)).await?;
+                        // Sets a connector to a `Preparing` status
+                        send(&mut ws_tx, msg_generator.status_notification(
+                          CommonConnectorStatusType::Preparing
+                        ).await).await?;
                       },
                       OcppAction::RemoteStopTransaction => {
                         txn_session.stop();
+                        send(&mut ws_tx, msg_generator.stop_transaction().await).await?;
 
-                        let stop_transaction = msg_generator.stop_transaction().await;
-                        ws_tx.send(MessageBuilder::text(stop_transaction)).await?;
-
-                        let connector_available = msg_generator.status_notification(ocpp::types::CommonConnectorStatusType::Available).await;
-                        ws_tx.send(MessageBuilder::text(connector_available)).await?;
+                        // Sets a connector to an `Available` status
+                        send(&mut ws_tx, msg_generator.status_notification(
+                          CommonConnectorStatusType::Available
+                        ).await).await?;
                       },
                       _ => warn!("Other action")
                     }
@@ -121,24 +106,23 @@ impl ChargePointIdle {
                     msg_id,
                     payload
                   } => {
-                    println!("Got call result {} {:?}", msg_id, payload);
-                    match msg_handler.handle_call_result(&msg_id, &payload).await? {
-                      Some(common_ocpp_msg) => {
-                          match common_ocpp_msg {
-                            CommonOcppAction::StartTransaction => {
-                              // Simulates HW connector delay
-                              sleep(Duration::from_secs(3)).await;
+                    debug!("Got call result {} {:?}", msg_id, payload);
 
-                              // Sets a connector as charging
-                              let connector_charging = msg_generator.status_notification(ocpp::types::CommonConnectorStatusType::Charging).await;
-                              ws_tx.send(MessageBuilder::text(connector_charging)).await?;
+                    if let Some(common_ocpp_msg) = msg_handler.handle_call_result(&msg_id, &payload).await? {
+                      match common_ocpp_msg {
+                        CommonOcppAction::StartTransaction => {
+                          // Simulates HW connector delay
+                          sleep(Duration::from_secs(3)).await;
 
-                              txn_session.start();
-                            },
-                            _ => {}
-                          }
-                      },
-                      None => {}
+                          // Sets a connector to an `Charging` status
+                          send(&mut ws_tx, msg_generator.status_notification(
+                            CommonConnectorStatusType::Charging
+                          ).await).await?;
+
+                          txn_session.start();
+                        },
+                        _ => {}
+                      }
                     }
                   },
                   _ => {}
