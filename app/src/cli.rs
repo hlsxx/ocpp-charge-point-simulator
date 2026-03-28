@@ -5,7 +5,6 @@ use std::{fmt::Display, path::PathBuf};
 pub enum BehaviorMode {
   #[clap(name = "dynamic")]
   Dynamic,
-
   #[clap(name = "idle")]
   Idle,
 }

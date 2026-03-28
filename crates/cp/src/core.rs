@@ -12,11 +12,23 @@ use tungstenite::ClientRequestBuilder;
 pub struct ChargePointClient;
 
 impl ChargePointClient {
+  // Use just as a namespace
+  #[allow(unused)]
+  fn new() -> Self {
+    unreachable!()
+  }
+}
+
+impl ChargePointClient {
   pub async fn connect(
     general_config: &GeneralConfig,
     config: &ChargePointConfig,
   ) -> Result<WebSocketStream<MaybeTlsStream<TcpStream>>> {
-    let uri = Uri::from_str(&format!("{}/{}", general_config.server_url, config.id))?;
+    let uri = Uri::from_str(&format!(
+      "{}/{}",
+      general_config.server_url.trim_end_matches('/'),
+      config.id
+    ))?;
 
     info!(target: "simulator", "connecting to CSMS at {}", uri.to_string().cyan());
 

@@ -21,7 +21,7 @@ impl Simulator {
     Self { mode, config }
   }
 
-  fn print_banner(&self) {
+  pub async fn run(&self) -> Result<()> {
     info!(
       "ocpp-charge-point-simulator v{}",
       env!("CARGO_PKG_VERSION").cyan()
@@ -31,52 +31,51 @@ impl Simulator {
       self.mode.to_string().purple(),
       self.mode.description()
     );
-  }
-
-  pub async fn run(&self) -> Result<()> {
-    self.print_banner();
-
     info!("simulator running...");
 
-    let mut handles: Vec<JoinHandle<()>> = Vec::new();
-
     let mut all_cps = self.config.charge_points.clone().unwrap_or_default();
-
     if let Some(implicit_cps) = &self.config.implicit_charge_points {
       let generated = Self::generate_implicit_cps(implicit_cps);
       all_cps.extend(generated);
     }
 
     let general_config = Arc::new(self.config.general.clone());
-    for cp_config in all_cps {
-      let general_config = general_config.clone();
+    let handles: Vec<JoinHandle<()>> = all_cps
+      .into_iter()
+      .map(|cp_config| self.spawn_cp(general_config.clone(), cp_config))
+      .collect();
 
-      let handle = match self.mode {
-        BehaviorMode::Idle => tokio::spawn(async move {
-          let mut cp_idle = ChargePointIdle::new(general_config, cp_config);
-
-          if let Err(e) = cp_idle.run().await {
-            error!("Charge point [Idle] failed: {:?}", e);
-          }
-        }),
-        BehaviorMode::Dynamic => tokio::spawn(async move {
-          let mut cp_dynamic = ChargePointDynamic::new(general_config, cp_config);
-
-          if let Err(e) = cp_dynamic.run().await {
-            error!("Charge point [Dynamic] failed: {:?}", e);
-          }
-        }),
-      };
-
-      handles.push(handle);
+    for res in join_all(handles).await {
+      if let Err(err) = res {
+        error!("Charge point task error: {:?}", err);
+      }
     }
-
-    join_all(handles).await;
 
     Ok(())
   }
 
-  /// Generates a list of charge point configurations from the given implicit config.
+  fn spawn_cp(
+    &self,
+    general_config: Arc<common::GeneralConfig>,
+    cp_config: ChargePointConfig,
+  ) -> JoinHandle<()> {
+    match self.mode {
+      BehaviorMode::Idle => tokio::spawn(async move {
+        if let Err(e) = ChargePointIdle::new(general_config, cp_config).run().await {
+          error!("Charge point [{}] failed: {:?}", BehaviorMode::Idle, e);
+        }
+      }),
+      BehaviorMode::Dynamic => tokio::spawn(async move {
+        if let Err(e) = ChargePointDynamic::new(general_config, cp_config)
+          .run()
+          .await
+        {
+          error!("Charge point [{}] failed: {:?}", BehaviorMode::Dynamic, e);
+        }
+      }),
+    }
+  }
+
   fn generate_implicit_cps(cfg: &ImplicitChargePointConfig) -> Vec<ChargePointConfig> {
     (0..cfg.count)
       .map(|i| ChargePointConfig {

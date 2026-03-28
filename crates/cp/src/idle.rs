@@ -61,24 +61,24 @@ impl ChargePointIdle {
       select! {
         // Charge point heart beats
         _ = heartbeat_interval.tick() => {
-          ws_tx.send(MessageBuilder::new_text(msg_generator.heartbeat().await)).await?;
+          ws_tx.send(MessageBuilder::text(msg_generator.heartbeat().await)).await?;
         },
 
         // Transaction (meter_values) session
         _ = txn_session.tick(), if txn_session.is_running() => {
           let meter_values = msg_generator.meter_values().await;
-          ws_tx.send(MessageBuilder::new_text(meter_values)).await?;
+          ws_tx.send(MessageBuilder::text(meter_values)).await?;
 
           txn_session.increment();
 
           if !txn_session.is_running() {
             // Transaction stop
             let stop_transaction = msg_generator.stop_transaction().await;
-            ws_tx.send(MessageBuilder::new_text(stop_transaction)).await?;
+            ws_tx.send(MessageBuilder::text(stop_transaction)).await?;
 
             // Sets a connector as available
             let connector_charging = msg_generator.status_notification(ocpp::types::CommonConnectorStatusType::Available).await;
-            ws_tx.send(MessageBuilder::new_text(connector_charging)).await?;
+            ws_tx.send(MessageBuilder::text(connector_charging)).await?;
           }
         },
 
@@ -99,20 +99,20 @@ impl ChargePointIdle {
 
                         // Transaction begin
                         let start_transaction = msg_generator.start_transaction(Some(&action_payload.id_tag)).await;
-                        ws_tx.send(MessageBuilder::new_text(start_transaction)).await?;
+                        ws_tx.send(MessageBuilder::text(start_transaction)).await?;
 
                         // Sets a connector as preparing
                         let connector_preparing = msg_generator.status_notification(ocpp::types::CommonConnectorStatusType::Preparing).await;
-                        ws_tx.send(MessageBuilder::new_text(connector_preparing)).await?;
+                        ws_tx.send(MessageBuilder::text(connector_preparing)).await?;
                       },
                       OcppAction::RemoteStopTransaction => {
                         txn_session.stop();
 
                         let stop_transaction = msg_generator.stop_transaction().await;
-                        ws_tx.send(MessageBuilder::new_text(stop_transaction)).await?;
+                        ws_tx.send(MessageBuilder::text(stop_transaction)).await?;
 
                         let connector_available = msg_generator.status_notification(ocpp::types::CommonConnectorStatusType::Available).await;
-                        ws_tx.send(MessageBuilder::new_text(connector_available)).await?;
+                        ws_tx.send(MessageBuilder::text(connector_available)).await?;
                       },
                       _ => warn!("Other action")
                     }
@@ -131,7 +131,7 @@ impl ChargePointIdle {
 
                               // Sets a connector as charging
                               let connector_charging = msg_generator.status_notification(ocpp::types::CommonConnectorStatusType::Charging).await;
-                              ws_tx.send(MessageBuilder::new_text(connector_charging)).await?;
+                              ws_tx.send(MessageBuilder::text(connector_charging)).await?;
 
                               txn_session.start();
                             },

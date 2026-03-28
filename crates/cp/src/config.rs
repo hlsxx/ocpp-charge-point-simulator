@@ -1,5 +1,7 @@
 use url::Url;
 
+const DEFAULT_CSMS_URL: &str = "ws://localhost:3000";
+
 pub struct CpConfig {
   csms_url: Url,
   charge_point_id: String,
@@ -8,15 +10,25 @@ pub struct CpConfig {
   model: String,
 }
 
-impl Default for CpConfig {
-  fn default() -> Self {
-    Self {
-      csms_url: Url::parse("ws://localhost:3000").unwrap(),
-      charge_point_id: format!("CP{}", rand::random_range(100_000..999_999)),
-      serial_number: String::from("ocpp-charge-point-simulator"),
-      vendor: String::from("ocpp-rust"),
-      model: String::from("ocpp-rust-v1"),
-    }
+impl CpConfig {
+  pub fn csms_url(&self) -> &Url {
+    &self.csms_url
+  }
+
+  pub fn charge_point_id(&self) -> &str {
+    &self.charge_point_id
+  }
+
+  pub fn serial_number(&self) -> &str {
+    &self.serial_number
+  }
+
+  pub fn vendor(&self) -> &str {
+    &self.vendor
+  }
+
+  pub fn model(&self) -> &str {
+    &self.model
   }
 }
 
@@ -30,11 +42,9 @@ pub struct CpConfigBuilder {
 }
 
 impl CpConfigBuilder {
-  pub fn csms_url(mut self, url_string: impl Into<String>) -> Self {
-    if let Ok(url) = Url::parse(&url_string.into()) {
-      self.csms_url = Some(url);
-    }
-    self
+  pub fn csms_url(mut self, url_string: impl Into<String>) -> Result<Self, url::ParseError> {
+    self.csms_url = Some(Url::parse(&url_string.into())?);
+    Ok(self)
   }
 
   pub fn charge_point_id(mut self, id: impl Into<String>) -> Self {
@@ -58,16 +68,18 @@ impl CpConfigBuilder {
   }
 
   pub fn build(self) -> CpConfig {
-    let config_default = CpConfig::default();
-
     CpConfig {
-      csms_url: self.csms_url.unwrap_or(config_default.csms_url),
+      csms_url: self
+        .csms_url
+        .unwrap_or_else(|| Url::parse(DEFAULT_CSMS_URL).unwrap()),
       charge_point_id: self
         .charge_point_id
-        .unwrap_or(config_default.charge_point_id),
-      serial_number: self.serial_number.unwrap_or(config_default.serial_number),
-      vendor: self.vendor.unwrap_or(config_default.vendor),
-      model: self.model.unwrap_or(config_default.model),
+        .unwrap_or_else(|| format!("CP{}", rand::random_range(100_000..999_999))),
+      serial_number: self
+        .serial_number
+        .unwrap_or_else(|| String::from("ocpp-charge-point-simulator")),
+      vendor: self.vendor.unwrap_or_else(|| String::from("ocpp-rust")),
+      model: self.model.unwrap_or_else(|| String::from("ocpp-rust-v1")),
     }
   }
 }
