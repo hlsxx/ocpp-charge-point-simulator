@@ -13,16 +13,10 @@ use futures_util::{SinkExt, StreamExt};
 use tracing::{error, info};
 use tungstenite::Message;
 
-use super::core::ChargePointClient;
+use crate::core::{connect, send};
 
-/// An `dynamic mode` charge point
-///
-/// Represents an `dynamic` mode charge point
 pub struct ChargePointDynamic {
-  /// General config
   general_config: Arc<GeneralConfig>,
-
-  // Specific chage point config
   config: ChargePointConfig,
 }
 
@@ -34,10 +28,8 @@ impl ChargePointDynamic {
     }
   }
 
-  /// Runs a charge point in `dynamic mode` that sends messages at specific intervals to the CSMS server.
-  /// In dynamic mode, the charge point only sends messages without actively listening for incoming data.
   pub async fn run(&mut self) -> Result<()> {
-    let ws_stream = ChargePointClient::connect(&self.general_config, &self.config).await?;
+    let ws_stream = connect(&self.general_config, &self.config).await?;
     let (mut ws_tx, mut ws_rx) = ws_stream.split();
 
     let (msg_generator, mut msg_handler) =
@@ -57,34 +49,25 @@ impl ChargePointDynamic {
 
     let _ = sleep(Duration::from_millis(self.config.boot_delay_interval)).await;
 
-    ws_tx
-      .send(Message::Text(
-        msg_generator.boot_notification().await.to_string().into(),
-      ))
-      .await
-      .unwrap();
+    send(&mut ws_tx, msg_generator.boot_notification().await).await?;
 
     loop {
       select! {
         _ = time::sleep_until(next_start_tx), if !transaction_active => {
-          let _ = ws_tx.send(
-            Message::Text(msg_generator.start_transaction(None).await.to_string().into())
-          ).await;
+          send(&mut ws_tx, msg_generator.start_transaction(None).await).await?;
 
-          let _ = ws_tx.send(
-            Message::Text(
-              msg_generator.status_notification(CommonConnectorStatusType::Preparing).await.to_string().into()
-            )
-          ).await;
+          // Sets a connector to a `Preparing` status
+          send(&mut ws_tx, msg_generator.status_notification(
+            CommonConnectorStatusType::Preparing
+          ).await).await?;
 
           // TODO: This is timeout for assign transaction_id from the CSMS call result
           tokio::time::sleep(Duration::from_secs(5)).await;
 
-          let _ = ws_tx.send(
-            Message::Text(
-              msg_generator.status_notification(CommonConnectorStatusType::Charging).await.to_string().into()
-            )
-          ).await;
+          // Sets a connector to a `Charging` status
+          send(&mut ws_tx, msg_generator.status_notification(
+            CommonConnectorStatusType::Charging
+          ).await).await?;
 
           stop_tx_deadline = Some(Instant::now() + Duration::from_secs(self.config.stop_tx_after));
           transaction_active = true;
@@ -97,15 +80,12 @@ impl ChargePointDynamic {
             futures::future::pending::<()>().await;
           }
         }, if stop_tx_deadline.is_some() => {
-          let _ = ws_tx.send(
-            Message::Text(msg_generator.stop_transaction().await.to_string().into())
-          ).await;
+          send(&mut ws_tx, msg_generator.stop_transaction().await).await?;
 
-          let _ = ws_tx.send(
-            Message::Text(
-              msg_generator.status_notification(CommonConnectorStatusType::Available).await.to_string().into()
-            )
-          ).await;
+          // Sets a connector to an `Available` status
+          send(&mut ws_tx, msg_generator.status_notification(
+            CommonConnectorStatusType::Available
+          ).await).await?;
 
           transaction_active = false;
           stop_tx_deadline = None;
@@ -116,12 +96,12 @@ impl ChargePointDynamic {
           let meter_values_string = msg_generator.meter_values().await.to_string();
 
           if meter_values_string != "null" {
-            let _ = ws_tx.send(Message::Text(meter_values_string.into())).await;
+            send(&mut ws_tx, meter_values_string).await?;
           }
         },
 
         _ = heartbeat_interval.tick() => {
-          let _ = ws_tx.send(Message::Text(msg_generator.heartbeat().await.to_string().into())).await;
+          send(&mut ws_tx, msg_generator.heartbeat().await).await?;
         },
 
         // _ = status_interval.tick() => {
@@ -137,9 +117,7 @@ impl ChargePointDynamic {
               //let shared_data = shared_data.write().await;
 
               if let Some(response_message) = msg_handler.handle_text_message(&text).await? {
-                ws_tx
-                  .send(Message::Text(response_message.clone().into()))
-                  .await?;
+                send(&mut ws_tx, response_message.clone()).await?;
               }
             }
             Ok(Message::Close(_)) => {

@@ -1,3 +1,4 @@
+use std::future::Future;
 use std::time::Duration;
 
 use tokio::time::{Instant, Interval, MissedTickBehavior, interval};
@@ -42,10 +43,10 @@ impl TxnSession {
   pub fn start(&mut self) {
     self.count = 0;
     self.is_running = true;
+    self.interval.reset();
   }
 
   pub fn stop(&mut self) {
-    println!("Called stop");
     self.is_running = false;
     self.count = 0;
   }
