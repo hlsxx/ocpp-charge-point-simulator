@@ -36,12 +36,8 @@ impl ChargePointDynamic {
       create_ocpp_handlers(self.general_config.ocpp_version.clone());
 
     let mut heartbeat_interval = interval(Duration::from_secs(self.config.heartbeat_interval));
-
-    // let mut status_interval = interval(Duration::from_secs(
-    //   self.charge_point_config.status_interval,
-    // ));
-
-    let mut meter_values_interval = interval(Duration::from_secs(2));
+    let mut meter_values_interval =
+      interval(Duration::from_secs(self.config.txn_meter_values_interval));
 
     let mut next_start_tx = Instant::now() + Duration::from_secs(self.config.start_tx_after);
     let mut stop_tx_deadline: Option<Instant> = None;
@@ -54,14 +50,14 @@ impl ChargePointDynamic {
     loop {
       select! {
         _ = time::sleep_until(next_start_tx), if !transaction_active => {
-          send(&mut ws_tx, msg_generator.start_transaction(None).await).await?;
-
           // Sets a connector to a `Preparing` status
           send(&mut ws_tx, msg_generator.status_notification(
             CommonConnectorStatusType::Preparing
           ).await).await?;
 
-          // TODO: This is timeout for assign transaction_id from the CSMS call result
+          send(&mut ws_tx, msg_generator.start_transaction(None).await).await?;
+
+          // Simulate a HW timeout
           tokio::time::sleep(Duration::from_secs(5)).await;
 
           // Sets a connector to a `Charging` status
@@ -93,10 +89,9 @@ impl ChargePointDynamic {
         },
 
         _ = meter_values_interval.tick(), if transaction_active => {
-          let meter_values_string = msg_generator.meter_values().await.to_string();
-
-          if meter_values_string != "null" {
-            send(&mut ws_tx, meter_values_string).await?;
+          let meter_value = msg_generator.meter_values().await;
+          if !meter_value.is_null() {
+            send(&mut ws_tx, meter_value.to_string()).await?;
           }
         },
 
@@ -104,18 +99,9 @@ impl ChargePointDynamic {
           send(&mut ws_tx, msg_generator.heartbeat().await).await?;
         },
 
-        // _ = status_interval.tick() => {
-        //   let _ = ws_tx.send(Message::Text(msg_generator.status_notification().await.to_string().into())).await;
-        // },
-
         Some(msg) = ws_rx.next() => {
           match msg {
             Ok(Message::Text(text)) => {
-              info!("Received: {}", text);
-
-              // TODO: Parse message
-              //let shared_data = shared_data.write().await;
-
               if let Some(response_message) = msg_handler.handle_text_message(&text).await? {
                 send(&mut ws_tx, response_message.clone()).await?;
               }

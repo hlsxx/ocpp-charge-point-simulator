@@ -50,6 +50,8 @@ impl ChargePointIdle {
 
     let mut heartbeat_interval = interval(Duration::from_secs(self.config.heartbeat_interval));
 
+    send(&mut ws_tx, msg_generator.boot_notification().await).await?;
+
     loop {
       select! {
         // Charge point heartbeats
@@ -111,8 +113,13 @@ impl ChargePointIdle {
                     if let Some(common_ocpp_msg) = msg_handler.handle_call_result(&msg_id, &payload).await? {
                       match common_ocpp_msg {
                         CommonOcppAction::StartTransaction => {
+                          // Sets a connector to an `Preparing` status
+                          send(&mut ws_tx, msg_generator.status_notification(
+                            CommonConnectorStatusType::Preparing
+                          ).await).await?;
+
                           // Simulates HW connector delay
-                          sleep(Duration::from_secs(3)).await;
+                          sleep(Duration::from_secs(5)).await;
 
                           // Sets a connector to an `Charging` status
                           send(&mut ws_tx, msg_generator.status_notification(

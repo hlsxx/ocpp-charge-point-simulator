@@ -27,48 +27,44 @@ use crate::types::CommonConnectorStatusType;
 
 use super::types::OcppAction;
 
-struct FrameBuilder;
+async fn build_call<T>(
+  shared_data: &SharedData<OcppAction>,
+  ocpp_action: OcppAction,
+  payload: T,
+) -> Value
+where
+  T: Debug + Serialize,
+{
+  info!("🔌 [🔵 Call] {}", ocpp_action);
+  debug!(action = %ocpp_action, ?payload);
 
-impl FrameBuilder {
-  async fn build_call<T>(
-    shared_data: &SharedData<OcppAction>,
-    ocpp_action: OcppAction,
-    payload: T,
-  ) -> Value
-  where
-    T: Debug + Serialize,
-  {
-    info!("🔌 [🔵 Call] {}", ocpp_action);
-    debug!(action = %ocpp_action, ?payload);
+  let msg_id = Uuid::new_v4();
+  shared_data
+    .insert_msg(&msg_id.to_string(), ocpp_action.clone())
+    .await;
 
-    let msg_id = Uuid::new_v4();
-    shared_data
-      .insert_msg(&msg_id.to_string(), ocpp_action.clone())
-      .await;
+  json!([2, msg_id, ocpp_action, payload])
+}
 
-    json!([2, msg_id, ocpp_action, payload])
-  }
+#[allow(unused)]
+pub fn build_call_result<T: Serialize>(message_id: &str, payload: T) -> Value {
+  json!([3, message_id, payload])
+}
 
-  #[allow(unused)]
-  pub fn build_call_result<T: Serialize>(message_id: &str, payload: T) -> Value {
-    json!([3, message_id, payload])
-  }
-
-  #[allow(unused)]
-  pub fn build_call_error(
-    message_id: &str,
-    error_code: &str,
-    error_description: &str,
-    error_details: Option<Value>,
-  ) -> Value {
-    json!([
-      4,
-      message_id,
-      error_code,
-      error_description,
-      error_details.unwrap_or_else(|| json!({}))
-    ])
-  }
+#[allow(unused)]
+pub fn build_call_error(
+  message_id: &str,
+  error_code: &str,
+  error_description: &str,
+  error_details: Option<Value>,
+) -> Value {
+  json!([
+    4,
+    message_id,
+    error_code,
+    error_description,
+    error_details.unwrap_or_else(|| json!({}))
+  ])
 }
 
 pub struct V16MessageGenerator {
@@ -158,7 +154,6 @@ impl MessageGenerator for V16MessageGenerator {
 
   async fn meter_values(&self) -> Value {
     let transaction_id = self.shared_data.get_transaction_id().await;
-    println!("tranasction id {:?}", transaction_id);
 
     if let Some(transaction_id) = transaction_id {
       self
@@ -228,6 +223,6 @@ impl V16MessageGenerator {
   where
     T: Debug + Serialize,
   {
-    FrameBuilder::build_call(&self.shared_data, ocpp_action, payload).await
+    build_call(&self.shared_data, ocpp_action, payload).await
   }
 }
