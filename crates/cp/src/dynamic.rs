@@ -33,7 +33,7 @@ impl ChargePointDynamic {
     let (mut ws_tx, mut ws_rx) = ws_stream.split();
 
     let (msg_generator, mut msg_handler) =
-      create_ocpp_handlers(self.general_config.ocpp_version.clone());
+      create_ocpp_handlers(&self.general_config.ocpp_version, &self.config);
 
     let mut heartbeat_interval = interval(Duration::from_secs(self.config.heartbeat_interval));
     let mut meter_values_interval =

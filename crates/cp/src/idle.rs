@@ -41,7 +41,7 @@ impl ChargePointIdle {
     let (mut ws_tx, mut ws_rx) = ws_stream.split();
 
     let (msg_generator, msg_handler) =
-      create_ocpp_handlers(self.general_config.ocpp_version.clone());
+      create_ocpp_handlers(&self.general_config.ocpp_version, &self.config);
 
     let mut txn_session = TxnSession::new(
       self.config.txn_meter_values_interval,

@@ -1,9 +1,11 @@
 #![allow(unused)]
 
-use common::OcppVersion;
+use std::sync::Arc;
+
+use common::{ChargePointConfig, Config, OcppVersion};
 
 use crate::{
-  msg_generator::{MessageGenerator, MessageGeneratorConfig},
+  msg_generator::{MessageGenerator, MessageGeneratorConfig, MessageGeneratorConfigBuilder},
   msg_handler::MessageHandler,
 };
 
@@ -16,9 +18,17 @@ pub mod v2_0_1;
 pub mod v2_1;
 
 pub fn create_ocpp_handlers(
-  ocpp_version: OcppVersion,
+  ocpp_version: &OcppVersion,
+  config: &ChargePointConfig,
 ) -> (Box<dyn MessageGenerator>, Box<dyn MessageHandler>) {
-  let msg_generator_config = MessageGeneratorConfig::default();
+  let mut config_builder = MessageGeneratorConfigBuilder::default();
+
+  // Use first defined tag
+  if let Some(id_tag) = config.id_tags.first() {
+    config_builder = config_builder.id_tag(id_tag.clone());
+  }
+
+  let msg_generator_config = config_builder.build();
 
   match ocpp_version {
     #[cfg(feature = "ocpp1_6")]
