@@ -10,7 +10,7 @@ ocpp = { path = "../ocpp" }
 url = "2.5.8"
 futures = "0.3.32"
 http = "1.4.0"
-tokio-tungstenite = "0.26.2"
+tokio-tungstenite = { version = "0.26.2", features = ["native-tls"] }
 tungstenite = "0.26.2"
 async-trait = "0.1.89"
 
