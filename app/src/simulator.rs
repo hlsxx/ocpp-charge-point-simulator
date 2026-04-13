@@ -21,7 +21,7 @@ impl Simulator {
     Self { mode, config }
   }
 
-  pub async fn run(&self) -> Result<()> {
+  pub async fn run(&mut self) -> Result<()> {
     info!(
       "ocpp-charge-point-simulator v{}",
       env!("CARGO_PKG_VERSION").cyan()
@@ -33,17 +33,21 @@ impl Simulator {
     );
     info!("simulator running...");
 
-    let mut all_cps = self.config.charge_points.clone().unwrap_or_default();
     if let Some(implicit_cps) = &self.config.implicit_charge_points {
-      let generated = Self::generate_implicit_cps(implicit_cps);
-      all_cps.extend(generated);
+      self
+        .config
+        .charge_points
+        .extend(Self::generate_implicit_cps(implicit_cps));
     }
 
     let general_config = Arc::new(self.config.general.clone());
-    let handles: Vec<JoinHandle<()>> = all_cps
-      .into_iter()
-      .map(|cp_config| self.spawn_cp(general_config.clone(), cp_config))
-      .collect();
+
+    let handles = self
+      .config
+      .charge_points
+      .iter()
+      .map(|cp_config| self.spawn_cp(Arc::clone(&general_config), cp_config.clone()))
+      .collect::<Vec<JoinHandle<()>>>();
 
     for res in join_all(handles).await {
       if let Err(err) = res {
@@ -80,6 +84,8 @@ impl Simulator {
     (0..cfg.count)
       .map(|i| ChargePointConfig {
         id: format!("{}{:06}", cfg.prefix, i),
+        model: format!("model-name-{:06}", i),
+        vendor: format!("vendor-name-{:06}", i),
         auth_header: String::new(),
         boot_delay_interval: rand::random_range(cfg.boot_delay_range[0]..=cfg.boot_delay_range[1]),
         heartbeat_interval: rand::random_range(
@@ -94,7 +100,7 @@ impl Simulator {
           cfg.start_tx_after_range[0]..=cfg.start_tx_after_range[1],
         ),
         stop_tx_after: rand::random_range(cfg.stop_tx_after_range[0]..=cfg.stop_tx_after_range[1]),
-        id_tags: cfg.id_tags.clone(),
+        id_tag: cfg.id_tag.clone(),
       })
       .collect()
   }

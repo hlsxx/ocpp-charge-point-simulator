@@ -15,7 +15,10 @@ ocpp_version = "ocpp1.6"
 
 # Explicitly defined charge points
 [[charge_points]]
-id = "CP100001"
+id="CP100001"
+model="test-model-name"
+vendor="test-model-vendor"
+id_tag="aabbcc"
 auth_header="Basic xxxx"
 boot_delay_interval = 0
 heartbeat_interval = 60
@@ -24,10 +27,12 @@ txn_meter_values_max_count = 60
 status_interval = 10
 start_tx_after = 5
 stop_tx_after = 20
-id_tags=[]
 
 [[charge_points]]
-id = "CP100002"
+id="CP100002"
+model="test-model-name"
+vendor="test-model-vendor"
+id_tag="aabbcc"
 auth_header="Basic xxxx"
 boot_delay_interval = 10
 heartbeat_interval = 30
@@ -36,4 +41,3 @@ txn_meter_values_max_count = 60
 status_interval = 15
 start_tx_after = 10
 stop_tx_after = 30
-id_tags=[]

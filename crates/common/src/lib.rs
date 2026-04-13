@@ -51,7 +51,7 @@ pub struct ImplicitChargePointConfig {
   pub status_interval_range: [u64; 2],
   pub start_tx_after_range: [u64; 2],
   pub stop_tx_after_range: [u64; 2],
-  pub id_tags: Vec<String>,
+  pub id_tag: String,
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -64,6 +64,8 @@ pub struct GeneralConfig {
 #[derive(Debug, Deserialize, Clone)]
 pub struct ChargePointConfig {
   pub id: String,
+  pub model: String,
+  pub vendor: String,
   pub auth_header: String,
   pub boot_delay_interval: u64,
   pub heartbeat_interval: u64,
@@ -72,13 +74,13 @@ pub struct ChargePointConfig {
   pub status_interval: u64,
   pub start_tx_after: u64,
   pub stop_tx_after: u64,
-  pub id_tags: Vec<String>,
+  pub id_tag: String,
 }
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct Config {
   pub general: GeneralConfig,
-  pub charge_points: Option<Vec<ChargePointConfig>>,
+  pub charge_points: Vec<ChargePointConfig>,
   pub implicit_charge_points: Option<ImplicitChargePointConfig>,
 }
 

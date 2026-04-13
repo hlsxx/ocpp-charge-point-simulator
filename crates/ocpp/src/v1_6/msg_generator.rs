@@ -1,8 +1,9 @@
 use std::fmt::Debug;
+use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use async_trait::async_trait;
-use common::SharedData;
+use common::{ChargePointConfig, Config, SharedData};
 use rust_ocpp::v1_6::messages::{
   authorize::AuthorizeRequest, boot_notification::BootNotificationRequest,
   data_transfer::DataTransferRequest,
@@ -22,7 +23,7 @@ use tracing::{debug, info};
 use uuid::Uuid;
 
 use crate::mock_data::MockData;
-use crate::msg_generator::{MessageGenerator, MessageGeneratorConfig};
+use crate::msg_generator::MessageGenerator;
 use crate::types::CommonConnectorStatusType;
 
 use super::types::OcppAction;
@@ -68,7 +69,7 @@ pub fn build_call_error(
 }
 
 pub struct V16MessageGenerator {
-  config: MessageGeneratorConfig,
+  config: ChargePointConfig,
   shared_data: SharedData<OcppAction>,
   id_counter: AtomicUsize,
 }
@@ -211,7 +212,7 @@ impl MessageGenerator for V16MessageGenerator {
 }
 
 impl V16MessageGenerator {
-  pub fn new(config: MessageGeneratorConfig, shared_data: SharedData<OcppAction>) -> Self {
+  pub fn new(config: ChargePointConfig, shared_data: SharedData<OcppAction>) -> Self {
     Self {
       config,
       shared_data,

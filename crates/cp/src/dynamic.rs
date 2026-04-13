@@ -29,11 +29,11 @@ impl ChargePointDynamic {
   }
 
   pub async fn run(&mut self) -> Result<()> {
-    let ws_stream = connect(&self.general_config, &self.config).await?;
+    let ws_stream = connect(self.general_config.clone(), &self.config).await?;
     let (mut ws_tx, mut ws_rx) = ws_stream.split();
 
     let (msg_generator, mut msg_handler) =
-      create_ocpp_handlers(&self.general_config.ocpp_version, &self.config);
+      create_ocpp_handlers(&self.general_config.ocpp_version, self.config.clone());
 
     let mut heartbeat_interval = interval(Duration::from_secs(self.config.heartbeat_interval));
     let mut meter_values_interval =

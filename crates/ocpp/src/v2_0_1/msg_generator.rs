@@ -1,3 +1,5 @@
+#![cfg(feature = "ocpp2_0_1")]
+
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use async_trait::async_trait;
@@ -23,7 +25,7 @@ use serde::Serialize;
 use serde_json::{Value, json};
 
 use super::types::OcppAction;
-use crate::msg_generator::{MessageGenerator, MessageGeneratorConfig};
+use crate::msg_generator::MessageGenerator;
 use crate::types::CommonConnectorStatusType;
 use uuid::Uuid;
 
