@@ -1,7 +1,7 @@
 use anyhow::Result;
 use async_trait::async_trait;
 use common::shared_data::SharedDataValue;
-use serde::{Serialize, de::DeserializeOwned};
+use serde::Serialize;
 use serde_json::{Value, json};
 
 use crate::types::CommonOcppAction;

@@ -7,7 +7,7 @@ use tokio::{
   time::{self, Duration, Instant, interval, sleep},
 };
 
-use ocpp::{create_ocpp_handlers, types::CommonConnectorStatusType};
+use ocpp::{OcppSession, types::CommonConnectorStatusType};
 
 use futures_util::{SinkExt, StreamExt};
 use tracing::{error, info};
@@ -32,8 +32,10 @@ impl ChargePointDynamic {
     let ws_stream = connect(self.general_config.clone(), &self.config).await?;
     let (mut ws_tx, mut ws_rx) = ws_stream.split();
 
-    let (msg_generator, mut msg_handler) =
-      create_ocpp_handlers(&self.general_config.ocpp_version, self.config.clone());
+    let OcppSession {
+      generator,
+      mut handler,
+    } = OcppSession::new(&self.general_config.ocpp_version, self.config.clone());
 
     let mut heartbeat_interval = interval(Duration::from_secs(self.config.heartbeat_interval));
     let mut meter_values_interval =
@@ -45,23 +47,23 @@ impl ChargePointDynamic {
 
     let _ = sleep(Duration::from_millis(self.config.boot_delay_interval)).await;
 
-    send(&mut ws_tx, msg_generator.boot_notification().await).await?;
+    send(&mut ws_tx, generator.boot_notification().await).await?;
 
     loop {
       select! {
         _ = time::sleep_until(next_start_tx), if !transaction_active => {
           // Sets a connector to a `Preparing` status
-          send(&mut ws_tx, msg_generator.status_notification(
+          send(&mut ws_tx, generator.status_notification(
             CommonConnectorStatusType::Preparing
           ).await).await?;
 
-          send(&mut ws_tx, msg_generator.start_transaction(None).await).await?;
+          send(&mut ws_tx, generator.start_transaction(None).await).await?;
 
           // Simulate a HW timeout
           tokio::time::sleep(Duration::from_secs(5)).await;
 
           // Sets a connector to a `Charging` status
-          send(&mut ws_tx, msg_generator.status_notification(
+          send(&mut ws_tx, generator.status_notification(
             CommonConnectorStatusType::Charging
           ).await).await?;
 
@@ -76,10 +78,10 @@ impl ChargePointDynamic {
             futures::future::pending::<()>().await;
           }
         }, if stop_tx_deadline.is_some() => {
-          send(&mut ws_tx, msg_generator.stop_transaction().await).await?;
+          send(&mut ws_tx, generator.stop_transaction().await).await?;
 
           // Sets a connector to an `Available` status
-          send(&mut ws_tx, msg_generator.status_notification(
+          send(&mut ws_tx, generator.status_notification(
             CommonConnectorStatusType::Available
           ).await).await?;
 
@@ -89,20 +91,20 @@ impl ChargePointDynamic {
         },
 
         _ = meter_values_interval.tick(), if transaction_active => {
-          let meter_value = msg_generator.meter_values().await;
+          let meter_value = generator.meter_values().await;
           if !meter_value.is_null() {
             send(&mut ws_tx, meter_value.to_string()).await?;
           }
         },
 
         _ = heartbeat_interval.tick() => {
-          send(&mut ws_tx, msg_generator.heartbeat().await).await?;
+          send(&mut ws_tx, generator.heartbeat().await).await?;
         },
 
         Some(msg) = ws_rx.next() => {
           match msg {
             Ok(Message::Text(text)) => {
-              if let Some(response_message) = msg_handler.handle_text_message(&text).await? {
+              if let Some(response_message) = handler.handle_text_message(&text).await? {
                 send(&mut ws_tx, response_message.clone()).await?;
               }
             }

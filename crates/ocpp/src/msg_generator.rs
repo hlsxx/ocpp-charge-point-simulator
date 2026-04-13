@@ -1,5 +1,4 @@
 use async_trait::async_trait;
-use common::ChargePointConfig;
 use serde_json::Value;
 
 use crate::types::CommonConnectorStatusType;

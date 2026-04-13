@@ -1,9 +1,8 @@
 use std::fmt::Debug;
-use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use async_trait::async_trait;
-use common::{ChargePointConfig, Config, SharedData};
+use common::{ChargePointConfig, SharedData};
 use rust_ocpp::v1_6::messages::{
   authorize::AuthorizeRequest, boot_notification::BootNotificationRequest,
   data_transfer::DataTransferRequest,

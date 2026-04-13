@@ -5,13 +5,13 @@ use crate::{
   msg_handler::{MessageFrame, MessageFrameType, MessageHandler},
   types::CommonOcppAction,
 };
-use anyhow::{Result, anyhow};
+use anyhow::Result;
 use async_trait::async_trait;
 use common::SharedData;
 use rust_ocpp::v1_6::messages::{
   get_configuration::{GetConfigurationRequest, GetConfigurationResponse},
   remote_start_transaction::RemoteStartTransactionRequest,
-  remote_stop_transaction::RemoteStopTransactionRequest,
+  //remote_stop_transaction::RemoteStopTransactionRequest,
   start_transaction::StartTransactionResponse,
 };
 

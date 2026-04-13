@@ -1,11 +1,3 @@
-#![allow(unused)]
-
-use std::sync::Arc;
-
-use common::{ChargePointConfig, Config, OcppVersion};
-
-use crate::{msg_generator::MessageGenerator, msg_handler::MessageHandler};
-
 pub mod mock_data;
 pub mod msg_generator;
 pub mod msg_handler;
@@ -14,37 +6,31 @@ pub mod v1_6;
 pub mod v2_0_1;
 pub mod v2_1;
 
-pub fn create_ocpp_handlers(
-  ocpp_version: &OcppVersion,
-  config: ChargePointConfig,
-) -> (Box<dyn MessageGenerator>, Box<dyn MessageHandler>) {
-  match ocpp_version {
-    #[cfg(feature = "ocpp1_6")]
-    OcppVersion::V1_6 => {
-      use crate::v1_6::{
-        msg_generator::V16MessageGenerator, msg_handler::V16MessageHandler, types::OcppAction,
-      };
-      use common::SharedData;
+use crate::{msg_generator::MessageGenerator, msg_handler::MessageHandler};
+use common::{ChargePointConfig, OcppVersion, SharedData};
 
-      let shared_data = SharedData::<OcppAction>::default();
-      (
-        Box::new(V16MessageGenerator::new(config, shared_data.clone())),
-        Box::new(V16MessageHandler::new(shared_data.clone())),
-      )
+pub struct OcppSession {
+  pub generator: Box<dyn MessageGenerator>,
+  pub handler: Box<dyn MessageHandler>,
+}
+
+impl OcppSession {
+  pub fn new(ocpp_version: &OcppVersion, config: ChargePointConfig) -> Self {
+    match ocpp_version {
+      #[cfg(feature = "ocpp1_6")]
+      OcppVersion::V1_6 => {
+        use crate::v1_6::{
+          msg_generator::V16MessageGenerator, msg_handler::V16MessageHandler, types::OcppAction,
+        };
+
+        let shared_data = SharedData::<OcppAction>::default();
+
+        Self {
+          generator: Box::new(V16MessageGenerator::new(config, shared_data.clone())),
+          handler: Box::new(V16MessageHandler::new(shared_data)),
+        }
+      }
+      _ => panic!("OCPP version not supported in this build"),
     }
-
-    #[cfg(feature = "ocpp2_0_1")]
-    OcppVersion::V2_0_1 => (
-      // Box::new(Ocpp201MessageGenerator::new(msg_generator_config)),
-      // Box::new(Ocpp201MessageHandler::new()),
-    ),
-
-    #[cfg(feature = "ocpp2_1")]
-    OcppVersion::V2_1 => (
-      // Box::new(Ocpp21MessageGenerator::new(cmsg_generator_config)),
-      // Box::new(Ocpp21MessageHandler::new()),
-    ),
-
-    _ => panic!("OCPP version not supported in this build"),
   }
 }
