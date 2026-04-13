@@ -4,7 +4,7 @@ use common::shared_data::SharedDataValue;
 use serde::Serialize;
 use serde_json::{Value, json};
 
-use crate::types::CommonOcppAction;
+use crate::types::CommonOcppResponse;
 
 use super::{
   v1_6::types::OcppAction as V16OcppAction, v2_0_1::types::OcppAction as V201OcppAction,
@@ -78,7 +78,7 @@ pub trait MessageHandler: SharedDataValue {
     &self,
     msg_id: &str,
     payload: &Value,
-  ) -> Result<Option<CommonOcppAction>>;
+  ) -> Result<Option<CommonOcppResponse>>;
 
   fn parse_ocpp_message(&self, text: &str) -> Result<MessageFrameType>;
 }

@@ -4,7 +4,7 @@ use futures::SinkExt;
 use ocpp::{
   OcppSession,
   msg_handler::{MessageFrame, MessageFrameType},
-  types::{CommonConnectorStatusType, CommonOcppAction},
+  types::{AuthorizationStatus, CommonConnectorStatusType, CommonOcppResponse},
   v1_6::{msg_handler::V16MessageHandler, types::OcppAction},
 };
 
@@ -53,6 +53,9 @@ impl ChargePointIdle {
 
     send(&mut ws_tx, generator.boot_notification().await).await?;
 
+    // Track state between messages
+    let mut pending_id_tag: Option<String> = None;
+
     loop {
       select! {
         // Charge point heartbeats
@@ -85,13 +88,8 @@ impl ChargePointIdle {
                     match action {
                       OcppAction::RemoteStartTransaction => {
                         let action_payload = V16MessageHandler::parse_remote_start_transaction_payload(payload)?;
-
-                        send(&mut ws_tx, generator.start_transaction(Some(&action_payload.id_tag)).await).await?;
-
-                        // Sets a connector to a `Preparing` status
-                        send(&mut ws_tx, generator.status_notification(
-                          CommonConnectorStatusType::Preparing
-                        ).await).await?;
+                        pending_id_tag = Some(action_payload.id_tag.clone());
+                        send(&mut ws_tx, generator.authorize(Some(&action_payload.id_tag)).await).await?;
                       },
                       OcppAction::RemoteStopTransaction => {
                         txn_session.stop();
@@ -113,7 +111,26 @@ impl ChargePointIdle {
 
                     if let Some(common_ocpp_msg) = handler.handle_call_result(&msg_id, &payload).await? {
                       match common_ocpp_msg {
-                        CommonOcppAction::StartTransaction => {
+                        CommonOcppResponse::Authorize { status } => {
+                          match status {
+                            AuthorizationStatus::Accepted => {
+                              if let Some(id_tag) = pending_id_tag.take() {
+                                send(&mut ws_tx, generator.start_transaction(Some(&id_tag)).await).await?;
+                              }
+                            },
+                            AuthorizationStatus::Blocked |
+                            AuthorizationStatus::Expired |
+                            AuthorizationStatus::Invalid => {
+                              warn!("Authorization rejected: {:?}", status);
+                              pending_id_tag = None;
+                            },
+                            AuthorizationStatus::ConcurrentTx => {
+                              warn!("Concurrent transaction in progress");
+                              pending_id_tag = None;
+                            },
+                          }
+                        },
+                        CommonOcppResponse::StartTransaction { .. } => {
                           // Sets a connector to an `Preparing` status
                           send(&mut ws_tx, generator.status_notification(
                             CommonConnectorStatusType::Preparing

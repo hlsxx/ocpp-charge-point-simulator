@@ -1,7 +1,7 @@
 #![allow(unused)]
 use crate::{
   msg_handler::{MessageFrameType, MessageHandler},
-  types::CommonOcppAction,
+  types::CommonOcppResponse,
 };
 
 use anyhow::Result;
@@ -30,7 +30,7 @@ impl MessageHandler for V201MessageHandler {
     &self,
     msg_id: &str,
     payload: &Value,
-  ) -> Result<Option<CommonOcppAction>> {
+  ) -> Result<Option<CommonOcppResponse>> {
     !unimplemented!()
   }
 }

@@ -94,12 +94,14 @@ impl MessageGenerator for V16MessageGenerator {
       .await
   }
 
-  async fn authorize(&self) -> Value {
+  async fn authorize(&self, tag_id: Option<&str>) -> Value {
     self
       .build_call(
         OcppAction::Authorize,
         AuthorizeRequest {
-          id_tag: self.config.id_tag.clone(),
+          id_tag: tag_id
+            .map(String::from)
+            .unwrap_or_else(|| self.config.id_tag.clone()),
         },
       )
       .await

@@ -3,15 +3,15 @@ use std::{fmt::Debug, str::FromStr};
 use super::types::OcppAction;
 use crate::{
   msg_handler::{MessageFrame, MessageFrameType, MessageHandler},
-  types::CommonOcppAction,
+  types::CommonOcppResponse,
 };
 use anyhow::Result;
 use async_trait::async_trait;
 use common::SharedData;
 use rust_ocpp::v1_6::messages::{
+  authorize::AuthorizeResponse,
   get_configuration::{GetConfigurationRequest, GetConfigurationResponse},
   remote_start_transaction::RemoteStartTransactionRequest,
-  //remote_stop_transaction::RemoteStopTransactionRequest,
   start_transaction::StartTransactionResponse,
 };
 
@@ -110,14 +110,22 @@ impl MessageHandler for V16MessageHandler {
     &self,
     msg_id: &str,
     payload: &Value,
-  ) -> Result<Option<CommonOcppAction>> {
+  ) -> Result<Option<CommonOcppResponse>> {
     let ocpp_action = self.shared_data.get_msg(msg_id).await;
     match ocpp_action {
       Some(ocpp_action) => match ocpp_action {
         OcppAction::StartTransaction => {
           let res: StartTransactionResponse = serde_json::from_value(payload.clone())?;
           self.shared_data.transaction_id(res.transaction_id).await;
-          Ok(Some(CommonOcppAction::StartTransaction))
+          Ok(Some(CommonOcppResponse::StartTransaction {
+            transaction_id: res.transaction_id,
+          }))
+        }
+        OcppAction::Authorize => {
+          let res: AuthorizeResponse = serde_json::from_value(payload.clone())?;
+          Ok(Some(CommonOcppResponse::Authorize {
+            status: res.id_tag_info.status.into(),
+          }))
         }
         _ => Ok(None),
       },

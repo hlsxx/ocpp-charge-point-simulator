@@ -1,6 +1,7 @@
 use std::str::FromStr;
 
 use anyhow::Result;
+use rust_ocpp::v1_6::types::AuthorizationStatus;
 use serde::Serialize;
 
 #[derive(Debug, Serialize, Clone)]
@@ -113,5 +114,17 @@ impl std::fmt::Display for OcppAction {
     };
 
     write!(f, "{s}")
+  }
+}
+
+impl From<AuthorizationStatus> for crate::types::AuthorizationStatus {
+  fn from(value: AuthorizationStatus) -> Self {
+    match value {
+      AuthorizationStatus::Accepted => crate::types::AuthorizationStatus::Accepted,
+      AuthorizationStatus::Blocked => crate::types::AuthorizationStatus::Blocked,
+      AuthorizationStatus::Expired => crate::types::AuthorizationStatus::Expired,
+      AuthorizationStatus::Invalid => crate::types::AuthorizationStatus::Invalid,
+      AuthorizationStatus::ConcurrentTx => crate::types::AuthorizationStatus::ConcurrentTx,
+    }
   }
 }

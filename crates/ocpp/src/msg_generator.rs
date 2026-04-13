@@ -11,7 +11,7 @@ pub trait MessageBuilder {
 pub trait MessageGenerator: Send {
   async fn boot_notification(&self) -> Value;
   async fn heartbeat(&self) -> Value;
-  async fn authorize(&self) -> Value;
+  async fn authorize(&self, tag_id: Option<&str>) -> Value;
   async fn start_transaction(&self, tag_id: Option<&str>) -> Value;
   async fn stop_transaction(&self) -> Value;
   async fn status_notification(&self, status: CommonConnectorStatusType) -> Value;

@@ -3,13 +3,27 @@ use rust_ocpp::{
   v2_0_1::enumerations::connector_status_enum_type::ConnectorStatusEnumType,
 };
 
-pub enum CommonOcppAction {
+#[derive(Debug)]
+pub enum AuthorizationStatus {
+  Accepted,
+  Blocked,
+  Expired,
+  Invalid,
+  ConcurrentTx,
+}
+
+pub enum CommonOcppResponse {
   // Unknown, // Default
   // CP → CSMS
   // BootNotification,
   // Heartbeat,
-  // Authorize,
-  StartTransaction,
+  Authorize {
+    // id_tag: String,
+    status: AuthorizationStatus,
+  },
+  StartTransaction {
+    transaction_id: i32,
+  },
   StopTransaction,
   // StatusNotification,
   // MeterValues,
