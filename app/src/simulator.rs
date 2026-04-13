@@ -83,9 +83,9 @@ impl Simulator {
   fn generate_implicit_cps(cfg: &ImplicitChargePointConfig) -> Vec<ChargePointConfig> {
     (0..cfg.count)
       .map(|i| ChargePointConfig {
-        id: format!("{}{:06}", cfg.prefix, i),
-        model: format!("model-name-{:06}", i),
-        vendor: format!("vendor-name-{:06}", i),
+        id: format!("{}{:03}", cfg.prefix, i),
+        model: format!("model-name-{:03}", i),
+        vendor: format!("vendor-name-{:03}", i),
         auth_header: String::new(),
         boot_delay_interval: rand::random_range(cfg.boot_delay_range[0]..=cfg.boot_delay_range[1]),
         heartbeat_interval: rand::random_range(
