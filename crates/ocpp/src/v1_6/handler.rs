@@ -2,7 +2,7 @@ use std::{fmt::Debug, str::FromStr};
 
 use super::types::OcppAction;
 use crate::{
-  msg_handler::{MessageFrame, MessageFrameType, MessageHandler},
+  handler::{MessageFrame, MessageFrameType, MessageHandler},
   types::CommonOcppResponse,
 };
 use anyhow::Result;

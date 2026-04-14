@@ -1,12 +1,12 @@
+pub mod generator;
+pub mod handler;
 pub mod mock_data;
-pub mod msg_generator;
-pub mod msg_handler;
 pub mod types;
 pub mod v1_6;
 pub mod v2_0_1;
 pub mod v2_1;
 
-use crate::{msg_generator::MessageGenerator, msg_handler::MessageHandler};
+use crate::{generator::MessageGenerator, handler::MessageHandler};
 use common::{ChargePointConfig, OcppVersion, SharedData};
 
 pub struct OcppSession {
@@ -20,7 +20,7 @@ impl OcppSession {
       #[cfg(feature = "ocpp1_6")]
       OcppVersion::V1_6 => {
         use crate::v1_6::{
-          msg_generator::V16MessageGenerator, msg_handler::V16MessageHandler, types::OcppAction,
+          generator::V16MessageGenerator, handler::V16MessageHandler, types::OcppAction,
         };
 
         let shared_data = SharedData::<OcppAction>::from_cp_config(&config).await;

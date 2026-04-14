@@ -21,8 +21,8 @@ use serde_json::{Value, json};
 use tracing::{debug, info};
 use uuid::Uuid;
 
+use crate::generator::MessageGenerator;
 use crate::mock_data::MockData;
-use crate::msg_generator::MessageGenerator;
 use crate::types::CommonConnectorStatusType;
 
 use super::types::OcppAction;

@@ -25,7 +25,7 @@ use serde::Serialize;
 use serde_json::{Value, json};
 
 use super::types::OcppAction;
-use crate::msg_generator::MessageGenerator;
+use crate::generator::MessageGenerator;
 use crate::types::CommonConnectorStatusType;
 use uuid::Uuid;
 

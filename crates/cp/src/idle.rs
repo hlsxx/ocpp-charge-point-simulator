@@ -3,9 +3,9 @@ use common::{ChargePointConfig, GeneralConfig};
 use futures::SinkExt;
 use ocpp::{
   OcppSession,
-  msg_handler::{MessageFrame, MessageFrameType},
+  handler::{MessageFrame, MessageFrameType},
   types::{AuthorizationStatus, CommonConnectorStatusType, CommonOcppResponse},
-  v1_6::{msg_handler::V16MessageHandler, types::OcppAction},
+  v1_6::{handler::V16MessageHandler, types::OcppAction},
 };
 
 use std::{sync::Arc, time::Duration};

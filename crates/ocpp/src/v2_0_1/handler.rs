@@ -1,6 +1,6 @@
 #![allow(unused)]
 use crate::{
-  msg_handler::{MessageFrameType, MessageHandler},
+  handler::{MessageFrameType, MessageHandler},
   types::CommonOcppResponse,
 };
 
@@ -8,16 +8,16 @@ use anyhow::Result;
 use async_trait::async_trait;
 use serde_json::Value;
 
-pub struct V21MessageHandler {}
+pub struct V201MessageHandler {}
 
-impl V21MessageHandler {
+impl V201MessageHandler {
   pub fn new() -> Self {
     Self {}
   }
 }
 
 #[async_trait]
-impl MessageHandler for V21MessageHandler {
+impl MessageHandler for V201MessageHandler {
   fn parse_ocpp_message(&self, text: &str) -> Result<MessageFrameType> {
     !unimplemented!()
   }

@@ -25,7 +25,7 @@ use rust_ocpp::v2_0_1::enumerations::boot_reason_enum_type::BootReasonEnumType;
 use serde::Serialize;
 use serde_json::{Value, json};
 
-use crate::msg_generator::MessageGenerator;
+use crate::generator::MessageGenerator;
 use crate::types::CommonConnectorStatusType;
 use uuid::Uuid;
 
