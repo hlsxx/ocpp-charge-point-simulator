@@ -9,6 +9,9 @@ pub trait MessageBuilder {
 
 #[async_trait]
 pub trait MessageGenerator: Send {
+  async fn heartbeat_interval(&self, interval: u32);
+  async fn meter_value_sample_interval(&self, interval: u32);
+
   async fn boot_notification(&self) -> Value;
   async fn heartbeat(&self) -> Value;
   async fn authorize(&self, tag_id: Option<&str>) -> Value;

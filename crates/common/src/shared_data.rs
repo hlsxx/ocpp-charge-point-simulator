@@ -10,11 +10,45 @@ type TagId = String;
 pub trait SharedDataValue: Send + Sync {}
 impl<A: Send + Sync> SharedDataValue for A {}
 
+#[derive(Debug, Clone)]
+pub struct ChargePointSettings {
+  pub heartbeat_interval: u32,
+  pub meter_value_sample_interval: u32,
+  pub connection_timeout: u32,
+  pub authorize_remote_tx_requests: bool,
+  pub stop_transaction_on_ev_side_disconnect: bool,
+  pub local_auth_list_enabled: bool,
+  pub local_auth_list_version: i32,
+  pub clock_aligned_data_interval: u32,
+  pub transaction_message_attempts: u32,
+  pub transaction_message_retry_interval: u32,
+}
+
+impl Default for ChargePointSettings {
+  fn default() -> Self {
+    Self {
+      heartbeat_interval: 60,
+      meter_value_sample_interval: 60,
+      connection_timeout: 60,
+      authorize_remote_tx_requests: true,
+      stop_transaction_on_ev_side_disconnect: true,
+      local_auth_list_enabled: false,
+      local_auth_list_version: 0,
+      clock_aligned_data_interval: 0,
+      transaction_message_attempts: 3,
+      transaction_message_retry_interval: 60,
+    }
+  }
+}
+
 pub struct SharedState<A: SharedDataValue> {
   msgs: HashMap<MsgId, A>,
+
   pub transaction_id: Option<i32>,
   pub tag_id: Option<TagId>,
   pub meter_stop: u32,
+
+  pub settings: ChargePointSettings,
 }
 
 impl<A: SharedDataValue> SharedState<A> {
@@ -24,6 +58,7 @@ impl<A: SharedDataValue> SharedState<A> {
       transaction_id: None,
       tag_id: None,
       meter_stop: 0,
+      settings: ChargePointSettings::default(),
     }
   }
 }

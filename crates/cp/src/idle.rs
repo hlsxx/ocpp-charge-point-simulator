@@ -84,6 +84,7 @@ impl ChargePointIdle {
                     ..
                   } => {
                     match action {
+                      OcppAction::Heartbeat => {},
                       OcppAction::RemoteStartTransaction => {
                         let action_payload = V16MessageHandler::parse_remote_start_transaction_payload(payload)?;
                         send(&mut ws_tx, generator.authorize(Some(&action_payload.id_tag)).await).await?;

@@ -75,6 +75,20 @@ pub struct V16MessageGenerator {
 
 #[async_trait]
 impl MessageGenerator for V16MessageGenerator {
+  async fn heartbeat_interval(&self, interval: u32) {
+    self
+      .shared_data
+      .write(|data| data.settings.heartbeat_interval = interval)
+      .await;
+  }
+
+  async fn meter_value_sample_interval(&self, interval: u32) {
+    self
+      .shared_data
+      .write(|data| data.settings.meter_value_sample_interval = interval)
+      .await;
+  }
+
   async fn boot_notification(&self) -> Value {
     self
       .build_call(
