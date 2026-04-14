@@ -35,7 +35,7 @@ impl ChargePointDynamic {
     let OcppSession {
       generator,
       mut handler,
-    } = OcppSession::new(&self.general_config.ocpp_version, self.config.clone());
+    } = OcppSession::new(&self.general_config.ocpp_version, self.config.clone()).await;
 
     let mut heartbeat_interval = interval(Duration::from_secs(self.config.heartbeat_interval));
     let mut meter_values_interval =
@@ -57,7 +57,7 @@ impl ChargePointDynamic {
             CommonConnectorStatusType::Preparing
           ).await).await?;
 
-          send(&mut ws_tx, generator.start_transaction(None).await).await?;
+          send(&mut ws_tx, generator.start_transaction().await).await?;
 
           // Simulate a HW timeout
           tokio::time::sleep(Duration::from_secs(5)).await;

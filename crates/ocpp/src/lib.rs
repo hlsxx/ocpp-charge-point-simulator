@@ -15,7 +15,7 @@ pub struct OcppSession {
 }
 
 impl OcppSession {
-  pub fn new(ocpp_version: &OcppVersion, config: ChargePointConfig) -> Self {
+  pub async fn new(ocpp_version: &OcppVersion, config: ChargePointConfig) -> Self {
     match ocpp_version {
       #[cfg(feature = "ocpp1_6")]
       OcppVersion::V1_6 => {
@@ -23,7 +23,7 @@ impl OcppSession {
           msg_generator::V16MessageGenerator, msg_handler::V16MessageHandler, types::OcppAction,
         };
 
-        let shared_data = SharedData::<OcppAction>::default();
+        let shared_data = SharedData::<OcppAction>::from_cp_config(&config).await;
 
         Self {
           generator: Box::new(V16MessageGenerator::new(config, shared_data.clone())),

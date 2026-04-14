@@ -35,7 +35,7 @@ async fn build_call<T>(
 where
   T: Debug + Serialize,
 {
-  info!("🔌 [🔵 Call] {}", ocpp_action);
+  info!("[🔵 Call] {}", ocpp_action);
   debug!(action = %ocpp_action, ?payload);
 
   let msg_id = Uuid::new_v4();
@@ -95,27 +95,30 @@ impl MessageGenerator for V16MessageGenerator {
   }
 
   async fn authorize(&self, tag_id: Option<&str>) -> Value {
+    let id_tag = tag_id
+      .map(String::from)
+      .unwrap_or_else(|| self.config.id_tag.clone());
+
     self
-      .build_call(
-        OcppAction::Authorize,
-        AuthorizeRequest {
-          id_tag: tag_id
-            .map(String::from)
-            .unwrap_or_else(|| self.config.id_tag.clone()),
-        },
-      )
+      .shared_data
+      .write(|data| data.tag_id = Some(id_tag.clone()))
+      .await;
+
+    self
+      .build_call(OcppAction::Authorize, AuthorizeRequest { id_tag })
       .await
   }
 
-  async fn start_transaction(&self, tag_id: Option<&str>) -> Value {
+  async fn start_transaction(&self) -> Value {
     self
       .build_call(
         OcppAction::StartTransaction,
         StartTransactionRequest {
           connector_id: 1,
-          id_tag: tag_id
-            .map(|val| val.to_string())
-            .unwrap_or(self.config.id_tag.clone()),
+          id_tag: self
+            .shared_data
+            .read(|data| data.tag_id.clone().unwrap())
+            .await,
           meter_start: 0,
           timestamp: chrono::Utc::now(),
           ..Default::default()
@@ -129,10 +132,13 @@ impl MessageGenerator for V16MessageGenerator {
       .build_call(
         OcppAction::StopTransaction,
         StopTransactionRequest {
-          meter_stop: 10,
+          meter_stop: self.shared_data.read(|data| data.meter_stop as i32).await,
           timestamp: chrono::Utc::now(),
-          id_tag: Some(self.config.id_tag.clone()),
-          transaction_id: self.shared_data.get_transaction_id().await.unwrap_or(1),
+          id_tag: self.shared_data.read(|data| data.tag_id.clone()).await,
+          transaction_id: self
+            .shared_data
+            .read(|data| data.transaction_id.unwrap_or(1))
+            .await,
           ..Default::default()
         },
       )
@@ -155,9 +161,14 @@ impl MessageGenerator for V16MessageGenerator {
   }
 
   async fn meter_values(&self) -> Value {
-    let transaction_id = self.shared_data.get_transaction_id().await;
+    let transaction_id = self.shared_data.read(|data| data.transaction_id).await;
 
     if let Some(transaction_id) = transaction_id {
+      self
+        .shared_data
+        .write(|data| data.meter_stop = data.meter_stop + 10)
+        .await;
+
       self
         .build_call(
           OcppAction::MeterValues,

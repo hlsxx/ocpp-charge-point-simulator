@@ -42,7 +42,8 @@ impl ChargePointIdle {
     let ws_stream = connect(self.general_config.clone(), &self.config).await?;
     let (mut ws_tx, mut ws_rx) = ws_stream.split();
 
-    let OcppSession { generator, handler } = OcppSession::new(ocpp_version, self.config.clone());
+    let OcppSession { generator, handler } =
+      OcppSession::new(ocpp_version, self.config.clone()).await;
 
     let mut txn_session = TxnSession::new(
       self.config.txn_meter_values_interval,
@@ -52,9 +53,6 @@ impl ChargePointIdle {
     let mut heartbeat_interval = interval(Duration::from_secs(self.config.heartbeat_interval));
 
     send(&mut ws_tx, generator.boot_notification().await).await?;
-
-    // Track state between messages
-    let mut pending_id_tag: Option<String> = None;
 
     loop {
       select! {
@@ -88,7 +86,6 @@ impl ChargePointIdle {
                     match action {
                       OcppAction::RemoteStartTransaction => {
                         let action_payload = V16MessageHandler::parse_remote_start_transaction_payload(payload)?;
-                        pending_id_tag = Some(action_payload.id_tag.clone());
                         send(&mut ws_tx, generator.authorize(Some(&action_payload.id_tag)).await).await?;
                       },
                       OcppAction::RemoteStopTransaction => {
@@ -114,19 +111,15 @@ impl ChargePointIdle {
                         CommonOcppResponse::Authorize { status } => {
                           match status {
                             AuthorizationStatus::Accepted => {
-                              if let Some(id_tag) = pending_id_tag.take() {
-                                send(&mut ws_tx, generator.start_transaction(Some(&id_tag)).await).await?;
-                              }
+                              send(&mut ws_tx, generator.start_transaction().await).await?;
                             },
                             AuthorizationStatus::Blocked |
                             AuthorizationStatus::Expired |
                             AuthorizationStatus::Invalid => {
                               warn!("Authorization rejected: {:?}", status);
-                              pending_id_tag = None;
                             },
                             AuthorizationStatus::ConcurrentTx => {
                               warn!("Concurrent transaction in progress");
-                              pending_id_tag = None;
                             },
                           }
                         },

@@ -81,12 +81,12 @@ impl MessageHandler for V16MessageHandler {
           action,
           payload,
         } => {
-          info!("🔌 [🔵 Call] {}", action);
+          info!("[🔵 Call] {}", action);
           debug!(?action, msg_id, ?payload);
           return self.handle_call(&msg_id, &action, &payload).await;
         }
         MessageFrame::CallResult { msg_id, payload } => {
-          info!("🔌 [🟢 CallResult]");
+          info!("[🟢 CallResult]");
           debug!(msg_id, ?payload);
           self.handle_call_result(&msg_id, &payload).await?;
           return Ok(None);
@@ -96,7 +96,7 @@ impl MessageHandler for V16MessageHandler {
           error_code,
           description,
         } => {
-          info!("🔌 [🔴 CallError] {}", error_code);
+          info!("[🔴 CallError] {}", error_code);
           debug!(msg_id, error_code, description);
           return self.handle_call_error(&msg_id).await;
         }
@@ -116,7 +116,12 @@ impl MessageHandler for V16MessageHandler {
       Some(ocpp_action) => match ocpp_action {
         OcppAction::StartTransaction => {
           let res: StartTransactionResponse = serde_json::from_value(payload.clone())?;
-          self.shared_data.transaction_id(res.transaction_id).await;
+
+          self
+            .shared_data
+            .write(|data| data.transaction_id = Some(res.transaction_id))
+            .await;
+
           Ok(Some(CommonOcppResponse::StartTransaction {
             transaction_id: res.transaction_id,
           }))
@@ -163,7 +168,7 @@ impl V16MessageHandler {
 
     let response_string = serde_json::to_string(&ocpp_message.to_frame())?;
 
-    info!("🔌 [🟢 CallResult]");
+    info!("[🟢 CallResult]");
     debug!(msg_id, ?response);
 
     Ok(Some(response_string))
