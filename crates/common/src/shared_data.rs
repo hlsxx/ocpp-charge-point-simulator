@@ -12,31 +12,106 @@ impl<A: Send + Sync> SharedDataValue for A {}
 
 #[derive(Debug, Clone)]
 pub struct ChargePointSettings {
+  // 🔌 Core / Timing
   pub heartbeat_interval: u32,
-  pub meter_value_sample_interval: u32,
   pub connection_timeout: u32,
+  pub reset_retries: u32,
+
+  // ⚡ Metering
+  pub meter_value_sample_interval: u32,
+  pub clock_aligned_data_interval: u32,
+  pub meter_values_sampled_data: String,
+  pub meter_values_aligned_data: String,
+  pub stop_txn_sampled_data: String,
+  pub stop_txn_aligned_data: String,
+
+  // 🔄 Transaction behavior
   pub authorize_remote_tx_requests: bool,
   pub stop_transaction_on_ev_side_disconnect: bool,
-  pub local_auth_list_enabled: bool,
-  pub local_auth_list_version: i32,
-  pub clock_aligned_data_interval: u32,
+  pub stop_transaction_on_invalid_id: bool,
+  pub max_energy_on_invalid_id: u32,
+
   pub transaction_message_attempts: u32,
   pub transaction_message_retry_interval: u32,
+
+  // 🔐 Authorization
+  pub local_authorize_offline: bool,
+  pub local_pre_authorize: bool,
+  pub authorization_cache_enabled: bool,
+  pub allow_offline_tx_for_unknown_id: bool,
+
+  // 💳 Local Auth List
+  pub local_auth_list_enabled: bool,
+  pub local_auth_list_version: i32,
+  pub send_local_list_max_length: u32,
+  pub local_auth_list_max_length: u32,
+
+  // 🔌 Connector / Hardware
+  pub number_of_connectors: u32,
+  pub connector_phase_rotation: String,
+
+  // 🌐 Network / WebSocket
+  pub websocket_ping_interval: u32,
+
+  // ⚡ Smart Charging
+  pub charge_profile_max_stack_level: u32,
+  pub charging_schedule_allowed_charging_rate_unit: String,
+  pub charging_schedule_max_periods: u32,
+
+  // 📊 Limits / Misc
+  pub get_configuration_max_keys: u32,
 }
 
 impl Default for ChargePointSettings {
   fn default() -> Self {
     Self {
+      // 🔌 Core / Timing
       heartbeat_interval: 60,
-      meter_value_sample_interval: 60,
       connection_timeout: 60,
+      reset_retries: 3,
+
+      // ⚡ Metering
+      meter_value_sample_interval: 60,
+      clock_aligned_data_interval: 0,
+      meter_values_sampled_data: "Energy.Active.Import.Register".to_string(),
+      meter_values_aligned_data: "".to_string(),
+      stop_txn_sampled_data: "Energy.Active.Import.Register".to_string(),
+      stop_txn_aligned_data: "".to_string(),
+
+      // 🔄 Transaction behavior
       authorize_remote_tx_requests: true,
       stop_transaction_on_ev_side_disconnect: true,
-      local_auth_list_enabled: false,
-      local_auth_list_version: 0,
-      clock_aligned_data_interval: 0,
+      stop_transaction_on_invalid_id: false,
+      max_energy_on_invalid_id: 0,
       transaction_message_attempts: 3,
       transaction_message_retry_interval: 60,
+
+      // 🔐 Authorization
+      local_authorize_offline: true,
+      local_pre_authorize: false,
+      authorization_cache_enabled: true,
+      allow_offline_tx_for_unknown_id: false,
+
+      // 💳 Local Auth List
+      local_auth_list_enabled: false,
+      local_auth_list_version: 0,
+      send_local_list_max_length: 100,
+      local_auth_list_max_length: 100,
+
+      // 🔌 Connector / Hardware
+      number_of_connectors: 1,
+      connector_phase_rotation: "Unknown".to_string(),
+
+      // 🌐 Network / WebSocket
+      websocket_ping_interval: 0,
+
+      // ⚡ Smart Charging
+      charge_profile_max_stack_level: 10,
+      charging_schedule_allowed_charging_rate_unit: "Current,Power".to_string(),
+      charging_schedule_max_periods: 24,
+
+      // 📊 Limits / Misc
+      get_configuration_max_keys: 50,
     }
   }
 }

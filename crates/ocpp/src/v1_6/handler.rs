@@ -10,7 +10,9 @@ use async_trait::async_trait;
 use common::SharedData;
 use rust_ocpp::v1_6::messages::{
   authorize::AuthorizeResponse,
+  change_configuration::ChangeConfigurationRequest,
   get_configuration::{GetConfigurationRequest, GetConfigurationResponse},
+  heart_beat::HeartbeatRequest,
   remote_start_transaction::RemoteStartTransactionRequest,
   start_transaction::StartTransactionResponse,
 };
@@ -31,8 +33,8 @@ impl V16MessageHandler {
 
 #[async_trait]
 impl MessageHandler for V16MessageHandler {
-  fn parse_ocpp_message(&self, text: &str) -> Result<MessageFrameType> {
-    let arr: Vec<Value> = serde_json::from_str(text)?;
+  fn parse_raw_ocpp_msg(&self, msg: &str) -> Result<MessageFrameType> {
+    let arr: Vec<Value> = serde_json::from_str(msg)?;
 
     match arr.first().and_then(|v| v.as_u64()) {
       Some(2) => {
@@ -42,6 +44,8 @@ impl MessageHandler for V16MessageHandler {
 
         let action = OcppAction::from_str(action_string.as_str())
           .map_err(|err| anyhow::anyhow!("Invalid OCPP action: {}", err))?;
+
+        info!("[🔵 Call] {}", action);
 
         Ok(MessageFrameType::V1_6(MessageFrame::Call {
           msg_id,
@@ -53,6 +57,8 @@ impl MessageHandler for V16MessageHandler {
         let msg_id = arr[1].as_str().unwrap_or("").to_string();
         let payload = arr[2].clone();
 
+        info!("[🟢 CallResult]");
+
         Ok(MessageFrameType::V1_6(MessageFrame::CallResult {
           msg_id,
           payload,
@@ -62,6 +68,8 @@ impl MessageHandler for V16MessageHandler {
         let msg_id = arr[1].as_str().unwrap_or("").to_string();
         let error_code = arr[2].as_str().unwrap_or("").to_string();
         let description = arr[3].as_str().unwrap_or("").to_string();
+
+        info!("[🔴 CallError] {}", error_code);
 
         Ok(MessageFrameType::V1_6(MessageFrame::CallError {
           msg_id,
@@ -74,7 +82,7 @@ impl MessageHandler for V16MessageHandler {
   }
 
   async fn handle_text_message(&mut self, text: &str) -> Result<Option<String>> {
-    if let MessageFrameType::V1_6(ocpp_message) = self.parse_ocpp_message(text)? {
+    if let MessageFrameType::V1_6(ocpp_message) = self.parse_raw_ocpp_msg(text)? {
       match ocpp_message {
         MessageFrame::Call {
           msg_id,
@@ -140,40 +148,6 @@ impl MessageHandler for V16MessageHandler {
 }
 
 impl V16MessageHandler {
-  pub fn parse_remote_start_transaction_payload(
-    payload: serde_json::Value,
-  ) -> Result<RemoteStartTransactionRequest> {
-    let request: RemoteStartTransactionRequest = serde_json::from_value(payload)?;
-    Ok(request)
-  }
-
-  async fn handle_ocpp_request<Req, Res, F, Fut>(
-    msg_id: &str,
-    payload: Value,
-    make_response: F,
-  ) -> Result<Option<String>>
-  where
-    Req: DeserializeOwned,
-    Res: Serialize + Debug,
-    F: FnOnce(Req) -> Fut,
-    Fut: Future<Output = Result<Res>>,
-  {
-    let request: Req = serde_json::from_value(payload)?;
-    let response = make_response(request).await?;
-
-    let ocpp_message = MessageFrame::<OcppAction>::CallResult {
-      msg_id: msg_id.to_string(),
-      payload: serde_json::to_value(&response)?,
-    };
-
-    let response_string = serde_json::to_string(&ocpp_message.to_frame())?;
-
-    info!("[🟢 CallResult]");
-    debug!(msg_id, ?response);
-
-    Ok(Some(response_string))
-  }
-
   async fn handle_call(
     &mut self,
     msg_id: &str,
@@ -201,5 +175,49 @@ impl V16MessageHandler {
 
   async fn handle_call_error(&self, _msg_id: &str) -> Result<Option<String>> {
     Ok(None)
+  }
+
+  pub fn parse_payload<T: DeserializeOwned>(value: serde_json::Value) -> Result<T> {
+    let payload: T = serde_json::from_value(value)?;
+    Ok(payload)
+  }
+
+  pub fn parse_change_configuration_payload(
+    payload: serde_json::Value,
+  ) -> Result<ChangeConfigurationRequest> {
+    V16MessageHandler::parse_payload::<ChangeConfigurationRequest>(payload)
+  }
+
+  pub fn parse_remote_start_transaction_payload(
+    payload: serde_json::Value,
+  ) -> Result<RemoteStartTransactionRequest> {
+    V16MessageHandler::parse_payload::<RemoteStartTransactionRequest>(payload)
+  }
+
+  async fn handle_ocpp_request<Req, Res, F, Fut>(
+    msg_id: &str,
+    payload: Value,
+    make_response: F,
+  ) -> Result<Option<String>>
+  where
+    Req: DeserializeOwned,
+    Res: Serialize + Debug,
+    F: FnOnce(Req) -> Fut,
+    Fut: Future<Output = Result<Res>>,
+  {
+    let request: Req = serde_json::from_value(payload)?;
+    let response = make_response(request).await?;
+
+    let ocpp_message = MessageFrame::<OcppAction>::CallResult {
+      msg_id: msg_id.to_string(),
+      payload: serde_json::to_value(&response)?,
+    };
+
+    let response_string = serde_json::to_string(&ocpp_message.to_frame())?;
+
+    info!("[🟢 CallResult]");
+    debug!(msg_id, ?response);
+
+    Ok(Some(response_string))
   }
 }

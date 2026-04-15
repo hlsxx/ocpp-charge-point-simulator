@@ -72,6 +72,8 @@ impl MessageFrameType {
 
 #[async_trait]
 pub trait MessageHandler: SharedDataValue {
+  fn parse_raw_ocpp_msg(&self, msg: &str) -> Result<MessageFrameType>;
+
   async fn handle_text_message(&mut self, text: &str) -> Result<Option<String>>;
 
   async fn handle_call_result(
@@ -79,6 +81,4 @@ pub trait MessageHandler: SharedDataValue {
     msg_id: &str,
     payload: &Value,
   ) -> Result<Option<CommonOcppResponse>>;
-
-  fn parse_ocpp_message(&self, text: &str) -> Result<MessageFrameType>;
 }

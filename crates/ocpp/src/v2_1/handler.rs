@@ -1,3 +1,4 @@
+#![cfg(feature = "ocpp2_0_1")]
 #![allow(unused)]
 use crate::{
   handler::{MessageFrameType, MessageHandler},

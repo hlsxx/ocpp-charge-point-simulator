@@ -75,17 +75,12 @@ pub struct V16MessageGenerator {
 
 #[async_trait]
 impl MessageGenerator for V16MessageGenerator {
+  // 🔌 Core / Timing
+
   async fn heartbeat_interval(&self, value: u32) {
     self
       .shared_data
       .write(|data| data.settings.heartbeat_interval = value)
-      .await;
-  }
-
-  async fn meter_value_sample_interval(&self, value: u32) {
-    self
-      .shared_data
-      .write(|data| data.settings.meter_value_sample_interval = value)
       .await;
   }
 
@@ -95,6 +90,89 @@ impl MessageGenerator for V16MessageGenerator {
       .write(|data| data.settings.connection_timeout = timeout)
       .await;
   }
+
+  async fn reset_retries(&self, value: u32) {
+    self
+      .shared_data
+      .write(|data| data.settings.reset_retries = value)
+      .await;
+  }
+
+  async fn websocket_ping_interval(&self, value: u32) {
+    self
+      .shared_data
+      .write(|data| data.settings.websocket_ping_interval = value)
+      .await;
+  }
+
+  // ⚡ Metering
+
+  async fn meter_value_sample_interval(&self, value: u32) {
+    self
+      .shared_data
+      .write(|data| data.settings.meter_value_sample_interval = value)
+      .await;
+  }
+
+  async fn clock_aligned_data_interval(&self, value: u32) {
+    self
+      .shared_data
+      .write(|data| data.settings.clock_aligned_data_interval = value)
+      .await;
+  }
+
+  async fn meter_values_sampled_data(&self, value: String) {
+    self
+      .shared_data
+      .write(|data| data.settings.meter_values_sampled_data = value)
+      .await;
+  }
+
+  async fn meter_values_aligned_data(&self, value: String) {
+    self
+      .shared_data
+      .write(|data| data.settings.meter_values_aligned_data = value)
+      .await;
+  }
+
+  async fn stop_txn_sampled_data(&self, value: String) {
+    self
+      .shared_data
+      .write(|data| data.settings.stop_txn_sampled_data = value)
+      .await;
+  }
+
+  async fn stop_txn_aligned_data(&self, value: String) {
+    self
+      .shared_data
+      .write(|data| data.settings.stop_txn_aligned_data = value)
+      .await;
+  }
+
+  // 🔄 Transaction behavior
+
+  async fn transaction_message_attempts(&self, value: u32) {
+    self
+      .shared_data
+      .write(|data| data.settings.transaction_message_attempts = value)
+      .await;
+  }
+
+  async fn transaction_message_retry_interval(&self, value: u32) {
+    self
+      .shared_data
+      .write(|data| data.settings.transaction_message_retry_interval = value)
+      .await;
+  }
+
+  async fn max_energy_on_invalid_id(&self, value: u32) {
+    self
+      .shared_data
+      .write(|data| data.settings.max_energy_on_invalid_id = value)
+      .await;
+  }
+
+  // 🔐 Authorization
 
   async fn authorize_remote_tx_requests(&self, state: bool) {
     self
@@ -110,6 +188,43 @@ impl MessageGenerator for V16MessageGenerator {
       .await;
   }
 
+  async fn stop_transaction_on_invalid_id(&self, state: bool) {
+    self
+      .shared_data
+      .write(|data| data.settings.stop_transaction_on_invalid_id = state)
+      .await;
+  }
+
+  async fn allow_offline_tx_for_unknown_id(&self, state: bool) {
+    self
+      .shared_data
+      .write(|data| data.settings.allow_offline_tx_for_unknown_id = state)
+      .await;
+  }
+
+  async fn local_authorize_offline(&self, state: bool) {
+    self
+      .shared_data
+      .write(|data| data.settings.local_authorize_offline = state)
+      .await;
+  }
+
+  async fn local_pre_authorize(&self, state: bool) {
+    self
+      .shared_data
+      .write(|data| data.settings.local_pre_authorize = state)
+      .await;
+  }
+
+  async fn authorization_cache_enabled(&self, state: bool) {
+    self
+      .shared_data
+      .write(|data| data.settings.authorization_cache_enabled = state)
+      .await;
+  }
+
+  // 💳 Local Authorization List
+
   async fn local_auth_list_enabled(&self, state: bool) {
     self
       .shared_data
@@ -124,24 +239,65 @@ impl MessageGenerator for V16MessageGenerator {
       .await;
   }
 
-  async fn clock_aligned_data_interval(&self, value: u32) {
+  async fn send_local_list_max_length(&self, value: u32) {
     self
       .shared_data
-      .write(|data| data.settings.clock_aligned_data_interval = value)
+      .write(|data| data.settings.send_local_list_max_length = value)
       .await;
   }
 
-  async fn transaction_message_attempts(&self, value: u32) {
+  async fn local_auth_list_max_length(&self, value: u32) {
     self
       .shared_data
-      .write(|data| data.settings.transaction_message_attempts = value)
+      .write(|data| data.settings.local_auth_list_max_length = value)
       .await;
   }
 
-  async fn transaction_message_retry_interval(&self, value: u32) {
+  // 🔌 Connector / Hardware
+
+  async fn number_of_connectors(&self, value: u32) {
     self
       .shared_data
-      .write(|data| data.settings.transaction_message_retry_interval = value)
+      .write(|data| data.settings.number_of_connectors = value)
+      .await;
+  }
+
+  async fn connector_phase_rotation(&self, value: String) {
+    self
+      .shared_data
+      .write(|data| data.settings.connector_phase_rotation = value)
+      .await;
+  }
+
+  // ⚡ Smart Charging
+
+  async fn charge_profile_max_stack_level(&self, value: u32) {
+    self
+      .shared_data
+      .write(|data| data.settings.charge_profile_max_stack_level = value)
+      .await;
+  }
+
+  async fn charging_schedule_allowed_charging_rate_unit(&self, value: String) {
+    self
+      .shared_data
+      .write(|data| data.settings.charging_schedule_allowed_charging_rate_unit = value)
+      .await;
+  }
+
+  async fn charging_schedule_max_periods(&self, value: u32) {
+    self
+      .shared_data
+      .write(|data| data.settings.charging_schedule_max_periods = value)
+      .await;
+  }
+
+  // 📊 Limits / Misc
+
+  async fn get_configuration_max_keys(&self, value: u32) {
+    self
+      .shared_data
+      .write(|data| data.settings.get_configuration_max_keys = value)
       .await;
   }
 
