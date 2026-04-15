@@ -33,7 +33,7 @@ impl V16MessageHandler {
 
 #[async_trait]
 impl MessageHandler for V16MessageHandler {
-  fn parse_raw_ocpp_msg(&self, msg: &str) -> Result<MessageFrameType> {
+  async fn parse_raw_ocpp_msg(&self, msg: &str) -> Result<MessageFrameType> {
     let arr: Vec<Value> = serde_json::from_str(msg)?;
 
     match arr.first().and_then(|v| v.as_u64()) {
@@ -45,7 +45,7 @@ impl MessageHandler for V16MessageHandler {
         let action = OcppAction::from_str(action_string.as_str())
           .map_err(|err| anyhow::anyhow!("Invalid OCPP action: {}", err))?;
 
-        info!("[🔵 Call] {}", action);
+        info!("⬅️  [🔵 Call] {}", action);
 
         Ok(MessageFrameType::V1_6(MessageFrame::Call {
           msg_id,
@@ -57,7 +57,10 @@ impl MessageHandler for V16MessageHandler {
         let msg_id = arr[1].as_str().unwrap_or("").to_string();
         let payload = arr[2].clone();
 
-        info!("[🟢 CallResult]");
+        info!(
+          "⬅️  [🟢 CallResult] {:?}",
+          self.shared_data.get_msg(&msg_id).await
+        );
 
         Ok(MessageFrameType::V1_6(MessageFrame::CallResult {
           msg_id,
@@ -69,7 +72,7 @@ impl MessageHandler for V16MessageHandler {
         let error_code = arr[2].as_str().unwrap_or("").to_string();
         let description = arr[3].as_str().unwrap_or("").to_string();
 
-        info!("[🔴 CallError] {}", error_code);
+        info!("⬅️  [🔴 CallError] {}", error_code);
 
         Ok(MessageFrameType::V1_6(MessageFrame::CallError {
           msg_id,
@@ -82,19 +85,19 @@ impl MessageHandler for V16MessageHandler {
   }
 
   async fn handle_text_message(&mut self, text: &str) -> Result<Option<String>> {
-    if let MessageFrameType::V1_6(ocpp_message) = self.parse_raw_ocpp_msg(text)? {
+    if let MessageFrameType::V1_6(ocpp_message) = self.parse_raw_ocpp_msg(text).await? {
       match ocpp_message {
         MessageFrame::Call {
           msg_id,
           action,
           payload,
         } => {
-          info!("[🔵 Call] {}", action);
+          // info!("[🔵 Call] {}", action);
           debug!(?action, msg_id, ?payload);
           return self.handle_call(&msg_id, &action, &payload).await;
         }
         MessageFrame::CallResult { msg_id, payload } => {
-          info!("[🟢 CallResult]");
+          // info!("[🟢 CallResult]");
           debug!(msg_id, ?payload);
           self.handle_call_result(&msg_id, &payload).await?;
           return Ok(None);
@@ -104,7 +107,7 @@ impl MessageHandler for V16MessageHandler {
           error_code,
           description,
         } => {
-          info!("[🔴 CallError] {}", error_code);
+          // info!("[🔴 CallError] {}", error_code);
           debug!(msg_id, error_code, description);
           return self.handle_call_error(&msg_id).await;
         }
@@ -215,8 +218,7 @@ impl V16MessageHandler {
 
     let response_string = serde_json::to_string(&ocpp_message.to_frame())?;
 
-    info!("[🟢 CallResult]");
-    debug!(msg_id, ?response);
+    // debug!(msg_id, ?response);
 
     Ok(Some(response_string))
   }

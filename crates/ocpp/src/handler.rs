@@ -72,7 +72,7 @@ impl MessageFrameType {
 
 #[async_trait]
 pub trait MessageHandler: SharedDataValue {
-  fn parse_raw_ocpp_msg(&self, msg: &str) -> Result<MessageFrameType>;
+  async fn parse_raw_ocpp_msg(&self, msg: &str) -> Result<MessageFrameType>;
 
   async fn handle_text_message(&mut self, text: &str) -> Result<Option<String>>;
 

@@ -65,5 +65,6 @@ pub trait MessageGenerator: Send {
   async fn diagnostics_status_notification(&self) -> Value;
   async fn firmware_status_notification(&self) -> Value;
   async fn data_transfer(&self) -> Value;
+  async fn change_configuration(&self) -> Value;
   fn next_id(&self) -> String;
 }

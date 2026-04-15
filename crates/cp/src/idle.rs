@@ -76,7 +76,7 @@ impl ChargePointIdle {
         msg = ws_rx.next() => {
           match msg {
             Some(Ok(Message::Text(text_msg))) => {
-              match handler.parse_raw_ocpp_msg(&text_msg)? {
+              match handler.parse_raw_ocpp_msg(&text_msg).await? {
                 MessageFrameType::V1_6(ocpp_msg_frame) => {
                   match ocpp_msg_frame {
                     MessageFrame::Call {
@@ -203,6 +203,7 @@ impl ChargePointIdle {
                             },
                             key => error!("ChangeConfiguration unknown key {key}"),
                           }
+                          send(&mut ws_tx, generator.change_configuration().await).await?;
                         },
                         OcppAction::RemoteStartTransaction => {
                           let action_payload = V16MessageHandler::parse_remote_start_transaction_payload(payload)?;

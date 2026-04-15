@@ -3,6 +3,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 
 use async_trait::async_trait;
 use common::{ChargePointConfig, SharedData};
+use rust_ocpp::v1_6::messages::change_configuration::ChangeConfigurationResponse;
 use rust_ocpp::v1_6::messages::{
   authorize::AuthorizeRequest, boot_notification::BootNotificationRequest,
   data_transfer::DataTransferRequest,
@@ -12,9 +13,9 @@ use rust_ocpp::v1_6::messages::{
   status_notification::StatusNotificationRequest, stop_transaction::StopTransactionRequest,
 };
 
-use rust_ocpp::v1_6::types::DiagnosticsStatus;
 use rust_ocpp::v1_6::types::FirmwareStatus;
 use rust_ocpp::v1_6::types::{ChargePointErrorCode, MeterValue};
+use rust_ocpp::v1_6::types::{ConfigurationStatus, DiagnosticsStatus};
 use serde::Serialize;
 use serde_json::{Value, json};
 
@@ -35,7 +36,7 @@ async fn build_call<T>(
 where
   T: Debug + Serialize,
 {
-  info!("[🔵 Call] {}", ocpp_action);
+  info!("➡️  [🔵 Call] {}", ocpp_action);
   debug!(action = %ocpp_action, ?payload);
 
   let msg_id = Uuid::new_v4();
@@ -439,6 +440,17 @@ impl MessageGenerator for V16MessageGenerator {
         DataTransferRequest {
           vendor_string: self.config.vendor.clone(),
           ..Default::default()
+        },
+      )
+      .await
+  }
+
+  async fn change_configuration(&self) -> Value {
+    self
+      .build_call(
+        OcppAction::StatusNotification,
+        ChangeConfigurationResponse {
+          status: ConfigurationStatus::Accepted,
         },
       )
       .await
