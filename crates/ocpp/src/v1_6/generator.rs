@@ -75,17 +75,73 @@ pub struct V16MessageGenerator {
 
 #[async_trait]
 impl MessageGenerator for V16MessageGenerator {
-  async fn heartbeat_interval(&self, interval: u32) {
+  async fn heartbeat_interval(&self, value: u32) {
     self
       .shared_data
-      .write(|data| data.settings.heartbeat_interval = interval)
+      .write(|data| data.settings.heartbeat_interval = value)
       .await;
   }
 
-  async fn meter_value_sample_interval(&self, interval: u32) {
+  async fn meter_value_sample_interval(&self, value: u32) {
     self
       .shared_data
-      .write(|data| data.settings.meter_value_sample_interval = interval)
+      .write(|data| data.settings.meter_value_sample_interval = value)
+      .await;
+  }
+
+  async fn connection_timeout(&self, timeout: u32) {
+    self
+      .shared_data
+      .write(|data| data.settings.connection_timeout = timeout)
+      .await;
+  }
+
+  async fn authorize_remote_tx_requests(&self, state: bool) {
+    self
+      .shared_data
+      .write(|data| data.settings.authorize_remote_tx_requests = state)
+      .await;
+  }
+
+  async fn stop_transaction_on_ev_side_disconnect(&self, state: bool) {
+    self
+      .shared_data
+      .write(|data| data.settings.stop_transaction_on_ev_side_disconnect = state)
+      .await;
+  }
+
+  async fn local_auth_list_enabled(&self, state: bool) {
+    self
+      .shared_data
+      .write(|data| data.settings.local_auth_list_enabled = state)
+      .await;
+  }
+
+  async fn local_auth_list_version(&self, value: i32) {
+    self
+      .shared_data
+      .write(|data| data.settings.local_auth_list_version = value)
+      .await;
+  }
+
+  async fn clock_aligned_data_interval(&self, value: u32) {
+    self
+      .shared_data
+      .write(|data| data.settings.clock_aligned_data_interval = value)
+      .await;
+  }
+
+  async fn transaction_message_attempts(&self, value: u32) {
+    self
+      .shared_data
+      .write(|data| data.settings.transaction_message_attempts = value)
+      .await;
+  }
+
+  async fn transaction_message_retry_interval(&self, value: u32) {
+    self
+      .shared_data
+      .write(|data| data.settings.transaction_message_retry_interval = value)
       .await;
   }
 
