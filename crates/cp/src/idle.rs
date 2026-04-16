@@ -51,14 +51,17 @@ impl ChargePointIdle {
     );
 
     let mut heartbeat_interval = interval(Duration::from_secs(self.config.heartbeat_interval));
+    let mut ws_ping_interval = interval(Duration::from_secs(30));
 
     send(&mut ws_tx, generator.boot_notification().await).await?;
 
     loop {
       select! {
-        // Charge point heartbeats
         _ = heartbeat_interval.tick() => send(&mut ws_tx, generator.heartbeat().await).await?,
-        // Transaction (meter_values) session
+        _ = ws_ping_interval.tick() => {
+            info!("➡️  ping");
+            ws_tx.send(Message::Ping(vec![].into())).await?
+          }
         _ = txn_session.tick(), if txn_session.is_running() => {
           send(&mut ws_tx, generator.meter_values().await).await?;
           txn_session.increment();
@@ -91,21 +94,29 @@ impl ChargePointIdle {
                             // 🔌 Core / Timing
 
                             "HeartbeatInterval" => {
-                              generator.heartbeat_interval(change_configuration_payload.value.parse::<u32>()?).await
+                              let value = change_configuration_payload.value.parse::<u32>()?;
+                              heartbeat_interval = interval(Duration::from_secs(value as u64));
+                              generator.heartbeat_interval(value).await
                             },
                             "MeterValueSampleInterval" => {
+                              let value = change_configuration_payload.value.parse::<u32>()?;
+                              txn_session.interval(value as u64);
                               generator.meter_value_sample_interval(change_configuration_payload.value.parse::<u32>()?).await
                             },
                             "ClockAlignedDataInterval" => {
                               generator.clock_aligned_data_interval(change_configuration_payload.value.parse::<u32>()?).await
                             },
                             "ConnectionTimeOut" => {
+                              // Not used: assume always plugged in
                               generator.connection_timeout(change_configuration_payload.value.parse::<u32>()?).await
                             },
                             "ResetRetries" => {
+                              // Not used: used for HW side
                               generator.reset_retries(change_configuration_payload.value.parse::<u32>()?).await
                             },
                             "WebSocketPingInterval" => {
+                              let value = change_configuration_payload.value.parse::<u32>()?;
+                              ws_ping_interval = interval(Duration::from_secs(value as u64));
                               generator.websocket_ping_interval(change_configuration_payload.value.parse::<u32>()?).await
                             },
 
@@ -230,6 +241,14 @@ impl ChargePointIdle {
                           CommonOcppResponse::Authorize { status } => {
                             match status {
                               AuthorizationStatus::Accepted => {
+                                // Sets a connector to an `Preparing` status
+                                send(&mut ws_tx, generator.status_notification(
+                                  CommonConnectorStatusType::Preparing
+                                ).await).await?;
+
+                                // Simulates HW connector delay
+                                sleep(Duration::from_secs(5)).await;
+
                                 send(&mut ws_tx, generator.start_transaction().await).await?;
                               },
                               AuthorizationStatus::Blocked |
@@ -243,14 +262,6 @@ impl ChargePointIdle {
                             }
                           },
                           CommonOcppResponse::StartTransaction { .. } => {
-                            // Sets a connector to an `Preparing` status
-                            send(&mut ws_tx, generator.status_notification(
-                              CommonConnectorStatusType::Preparing
-                            ).await).await?;
-
-                            // Simulates HW connector delay
-                            sleep(Duration::from_secs(5)).await;
-
                             // Sets a connector to an `Charging` status
                             send(&mut ws_tx, generator.status_notification(
                               CommonConnectorStatusType::Charging
@@ -275,6 +286,7 @@ impl ChargePointIdle {
                 }
               }
             },
+            Some(Ok(Message::Pong(_))) => info!("⬅️  pong"),
             Some(other_msg) => warn!("Another message {other_msg:?}"),
             None => break
           }

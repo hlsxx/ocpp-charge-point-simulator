@@ -1220,6 +1220,7 @@ dependencies = [
  "rust-ocpp",
  "serde",
  "serde_json",
+ "tokio",
  "tracing",
  "uuid",
 ]

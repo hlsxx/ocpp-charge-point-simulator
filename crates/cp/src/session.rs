@@ -23,6 +23,10 @@ impl TxnSession {
     }
   }
 
+  pub fn interval(&mut self, value: u64) {
+    self.interval = interval(Duration::from_secs(value));
+  }
+
   pub fn is_running(&self) -> bool {
     self.is_running
   }

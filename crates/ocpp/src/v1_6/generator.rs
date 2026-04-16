@@ -1,7 +1,9 @@
+use std::collections::HashSet;
 use std::fmt::Debug;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use async_trait::async_trait;
+use common::shared_data::ChargingSessionState;
 use common::{ChargePointConfig, SharedData};
 use rust_ocpp::v1_6::messages::change_configuration::ChangeConfigurationResponse;
 use rust_ocpp::v1_6::messages::{
@@ -19,11 +21,12 @@ use rust_ocpp::v1_6::types::{ConfigurationStatus, DiagnosticsStatus};
 use serde::Serialize;
 use serde_json::{Value, json};
 
+use tokio::time::Instant;
 use tracing::{debug, info};
 use uuid::Uuid;
 
 use crate::generator::MessageGenerator;
-use crate::mock_data::MockData;
+use crate::mock_data::MeterValueMockData;
 use crate::types::CommonConnectorStatusType;
 
 use super::types::OcppAction;
@@ -123,9 +126,14 @@ impl MessageGenerator for V16MessageGenerator {
   }
 
   async fn meter_values_sampled_data(&self, value: String) {
+    let values = value
+      .split(',')
+      .map(|item| item.to_string())
+      .collect::<HashSet<String>>();
+
     self
       .shared_data
-      .write(|data| data.settings.meter_values_sampled_data = value)
+      .write(|data| data.settings.meter_values_sampled_data = values)
       .await;
   }
 
@@ -359,7 +367,10 @@ impl MessageGenerator for V16MessageGenerator {
       .build_call(
         OcppAction::StopTransaction,
         StopTransactionRequest {
-          meter_stop: self.shared_data.read(|data| data.meter_stop as i32).await,
+          meter_stop: self
+            .shared_data
+            .read(|data| data.charging_session_state.energy_wh as i32)
+            .await,
           timestamp: chrono::Utc::now(),
           id_tag: self.shared_data.read(|data| data.tag_id.clone()).await,
           transaction_id: self
@@ -388,12 +399,24 @@ impl MessageGenerator for V16MessageGenerator {
   }
 
   async fn meter_values(&self) -> Value {
-    let transaction_id = self.shared_data.read(|data| data.transaction_id).await;
+    let (transaction_id, meter_values_sampled_data) = self
+      .shared_data
+      .read(|data| {
+        (
+          data.transaction_id,
+          data.settings.meter_values_sampled_data.clone(),
+        )
+      })
+      .await;
 
     if let Some(transaction_id) = transaction_id {
+      let (meter_value, total_power_kw) = MeterValue::mock_data(meter_values_sampled_data);
+
       self
         .shared_data
-        .write(|data| data.meter_stop = data.meter_stop + 10)
+        .write(|data| {
+          V16MessageGenerator::update_energy(&mut data.charging_session_state, total_power_kw)
+        })
         .await;
 
       self
@@ -401,7 +424,7 @@ impl MessageGenerator for V16MessageGenerator {
           OcppAction::MeterValues,
           MeterValuesRequest {
             connector_id: 1,
-            meter_value: vec![MeterValue::mock_data()],
+            meter_value: vec![meter_value],
             transaction_id: Some(transaction_id),
           },
         )
@@ -468,6 +491,13 @@ impl V16MessageGenerator {
       shared_data,
       id_counter: AtomicUsize::new(1),
     }
+  }
+
+  fn update_energy(state: &mut ChargingSessionState, power_kw: f64) {
+    let now = Instant::now();
+    let delta_hours = now.duration_since(state.last_update).as_secs_f64() / 3600.0;
+    state.energy_wh += power_kw * 1000.0 * delta_hours;
+    state.last_update = now;
   }
 
   async fn build_call<T>(&self, ocpp_action: OcppAction, payload: T) -> Value

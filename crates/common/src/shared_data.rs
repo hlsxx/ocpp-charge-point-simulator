@@ -1,6 +1,9 @@
-use std::{collections::HashMap, sync::Arc};
+use std::{
+  collections::{HashMap, HashSet},
+  sync::Arc,
+};
 
-use tokio::sync::RwLock;
+use tokio::{sync::RwLock, time::Instant};
 
 use crate::ChargePointConfig;
 
@@ -20,7 +23,7 @@ pub struct ChargePointSettings {
   // ⚡ Metering
   pub meter_value_sample_interval: u32,
   pub clock_aligned_data_interval: u32,
-  pub meter_values_sampled_data: String,
+  pub meter_values_sampled_data: HashSet<String>,
   pub meter_values_aligned_data: String,
   pub stop_txn_sampled_data: String,
   pub stop_txn_aligned_data: String,
@@ -73,7 +76,16 @@ impl Default for ChargePointSettings {
       // ⚡ Metering
       meter_value_sample_interval: 60,
       clock_aligned_data_interval: 0,
-      meter_values_sampled_data: "Energy.Active.Import.Register".to_string(),
+      meter_values_sampled_data: HashSet::from([
+        "Energy.Active.Import.Register".to_string(),
+        "Power.Active.Import".to_string(),
+        "Current.Import".to_string(),
+        "Voltage".to_string(),
+        "Power.Factor".to_string(),
+        "SoC".to_string(),
+        "Frequency".to_string(),
+        "Temperature".to_string(),
+      ]),
       meter_values_aligned_data: "".to_string(),
       stop_txn_sampled_data: "Energy.Active.Import.Register".to_string(),
       stop_txn_aligned_data: "".to_string(),
@@ -116,13 +128,27 @@ impl Default for ChargePointSettings {
   }
 }
 
+pub struct ChargingSessionState {
+  pub energy_wh: f64,
+  pub last_update: Instant,
+}
+
+impl Default for ChargingSessionState {
+  fn default() -> Self {
+    Self {
+      energy_wh: 0.0,
+      last_update: Instant::now(),
+    }
+  }
+}
+
 pub struct SharedState<A: SharedDataValue> {
   msgs: HashMap<MsgId, A>,
 
   pub transaction_id: Option<i32>,
   pub tag_id: Option<TagId>,
-  pub meter_stop: u32,
 
+  pub charging_session_state: ChargingSessionState,
   pub settings: ChargePointSettings,
 }
 
@@ -132,7 +158,7 @@ impl<A: SharedDataValue> SharedState<A> {
       msgs: HashMap::new(),
       transaction_id: None,
       tag_id: None,
-      meter_stop: 0,
+      charging_session_state: ChargingSessionState::default(),
       settings: ChargePointSettings::default(),
     }
   }
