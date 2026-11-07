@@ -399,18 +399,20 @@ impl MessageGenerator for V16MessageGenerator {
   }
 
   async fn meter_values(&self) -> Value {
-    let (transaction_id, meter_values_sampled_data) = self
+    let (transaction_id, meter_values_sampled_data, energy_wh) = self
       .shared_data
       .read(|data| {
         (
           data.transaction_id,
           data.settings.meter_values_sampled_data.clone(),
+          data.charging_session_state.energy_wh,
         )
       })
       .await;
 
     if let Some(transaction_id) = transaction_id {
-      let (meter_value, total_power_kw) = MeterValue::mock_data(meter_values_sampled_data);
+      let (meter_value, total_power_kw) =
+        MeterValue::mock_data(meter_values_sampled_data, energy_wh);
 
       self
         .shared_data

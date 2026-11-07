@@ -8,7 +8,7 @@ use rust_ocpp::v1_6::types::{
 };
 
 pub trait MeterValueMockData: Sized {
-  fn mock_data(meter_values_sampled_data: HashSet<String>) -> (Self, f64);
+  fn mock_data(meter_values_sampled_data: HashSet<String>, energy_wh: f64) -> (Self, f64);
 }
 
 pub trait SampledValueMockData {
@@ -66,7 +66,7 @@ impl SampledValueMockData for SampledValue {
 }
 
 impl MeterValueMockData for MeterValue {
-  fn mock_data(meter_values_sampled_data: HashSet<String>) -> (Self, f64) {
+  fn mock_data(meter_values_sampled_data: HashSet<String>, energy_wh: f64) -> (Self, f64) {
     let mut rng = rand::rng();
     let mut sampled_values = Vec::new();
 
@@ -87,7 +87,7 @@ impl MeterValueMockData for MeterValue {
     let total_power_kw = power_l1 + power_l2 + power_l3;
 
     // Energy register (cumulative, in Wh)
-    let energy_register = rng.random_range(1000.0..50000.0);
+    let energy_register = energy_wh;
 
     let context = ReadingContext::InterruptionBegin;
     let format = ValueFormat::Raw;
