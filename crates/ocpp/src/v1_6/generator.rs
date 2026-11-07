@@ -345,16 +345,28 @@ impl MessageGenerator for V16MessageGenerator {
   }
 
   async fn start_transaction(&self) -> Value {
+    let (id_tag, meter_start) = self
+      .shared_data
+      .read(|data| {
+        (
+          data.tag_id.clone().unwrap(),
+          data.charging_session_state.energy_wh as i32,
+        )
+      })
+      .await;
+
+    self
+      .shared_data
+      .write(|data| data.charging_session_state.last_update = Instant::now())
+      .await;
+
     self
       .build_call(
         OcppAction::StartTransaction,
         StartTransactionRequest {
           connector_id: 1,
-          id_tag: self
-            .shared_data
-            .read(|data| data.tag_id.clone().unwrap())
-            .await,
-          meter_start: 0,
+          id_tag,
+          meter_start,
           timestamp: chrono::Utc::now(),
           ..Default::default()
         },
