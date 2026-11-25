@@ -2,7 +2,7 @@ use std::{fmt::Display, str::FromStr, sync::Arc};
 
 use anyhow::Result;
 use colored::Colorize;
-use common::{ChargePointConfig, GeneralConfig, OcppVersion};
+use common::{ChargePointConfig, GeneralConfig};
 use futures::SinkExt;
 use http::Uri;
 use tokio::net::TcpStream;
@@ -25,7 +25,7 @@ pub async fn connect<'a>(
 
   let request = ClientRequestBuilder::new(uri)
     .with_header("Authorization", &cp_config.auth_header)
-    .with_sub_protocol(OcppVersion::V1_6.to_string());
+    .with_sub_protocol(general_config.ocpp_version.to_string());
 
   let (ws_stream, _) = connect_async(request).await?;
 
