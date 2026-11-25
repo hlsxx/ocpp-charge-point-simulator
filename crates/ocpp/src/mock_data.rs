@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use chrono::Utc;
-use rand::Rng;
+use rand::RngExt;
 use rand::seq::IndexedRandom;
 use rust_ocpp::v1_6::types::{
   Location, Measurand, MeterValue, Phase, ReadingContext, SampledValue, UnitOfMeasure, ValueFormat,
