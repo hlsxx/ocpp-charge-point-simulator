@@ -10,6 +10,7 @@ use tokio_tungstenite::{MaybeTlsStream, WebSocketStream, connect_async};
 use tracing::info;
 use tungstenite::{ClientRequestBuilder, Message};
 
+#[allow(clippy::needless_lifetimes)]
 pub async fn connect<'a>(
   general_config: Arc<GeneralConfig>,
   cp_config: &'a ChargePointConfig,

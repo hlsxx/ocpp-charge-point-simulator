@@ -22,13 +22,3 @@ serde_json = { workspace = true }
 rand = { workspace = true }
 colored = { workspace = true }
 futures-util = { workspace = true }
-
-[profile.release]
-opt-level = 3
-lto = "thin"
-codegen-units = 1
-strip = true
-panic = "abort"
-
-[profile.dev]
-opt-level = 0

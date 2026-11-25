@@ -79,8 +79,6 @@ pub struct V16MessageGenerator {
 
 #[async_trait]
 impl MessageGenerator for V16MessageGenerator {
-  // 🔌 Core / Timing
-
   async fn heartbeat_interval(&self, value: u32) {
     self
       .shared_data
@@ -108,8 +106,6 @@ impl MessageGenerator for V16MessageGenerator {
       .write(|data| data.settings.websocket_ping_interval = value)
       .await;
   }
-
-  // ⚡ Metering
 
   async fn meter_value_sample_interval(&self, value: u32) {
     self
@@ -158,8 +154,6 @@ impl MessageGenerator for V16MessageGenerator {
       .await;
   }
 
-  // 🔄 Transaction behavior
-
   async fn transaction_message_attempts(&self, value: u32) {
     self
       .shared_data
@@ -180,8 +174,6 @@ impl MessageGenerator for V16MessageGenerator {
       .write(|data| data.settings.max_energy_on_invalid_id = value)
       .await;
   }
-
-  // 🔐 Authorization
 
   async fn authorize_remote_tx_requests(&self, state: bool) {
     self
@@ -232,8 +224,6 @@ impl MessageGenerator for V16MessageGenerator {
       .await;
   }
 
-  // 💳 Local Authorization List
-
   async fn local_auth_list_enabled(&self, state: bool) {
     self
       .shared_data
@@ -262,8 +252,6 @@ impl MessageGenerator for V16MessageGenerator {
       .await;
   }
 
-  // 🔌 Connector / Hardware
-
   async fn number_of_connectors(&self, value: u32) {
     self
       .shared_data
@@ -277,8 +265,6 @@ impl MessageGenerator for V16MessageGenerator {
       .write(|data| data.settings.connector_phase_rotation = value)
       .await;
   }
-
-  // ⚡ Smart Charging
 
   async fn charge_profile_max_stack_level(&self, value: u32) {
     self
@@ -300,8 +286,6 @@ impl MessageGenerator for V16MessageGenerator {
       .write(|data| data.settings.charging_schedule_max_periods = value)
       .await;
   }
-
-  // 📊 Limits / Misc
 
   async fn get_configuration_max_keys(&self, value: u32) {
     self

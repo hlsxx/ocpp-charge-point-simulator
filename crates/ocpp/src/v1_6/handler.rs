@@ -12,7 +12,6 @@ use rust_ocpp::v1_6::messages::{
   authorize::AuthorizeResponse,
   change_configuration::ChangeConfigurationRequest,
   get_configuration::{GetConfigurationRequest, GetConfigurationResponse},
-  heart_beat::HeartbeatRequest,
   remote_start_transaction::RemoteStartTransactionRequest,
   start_transaction::StartTransactionResponse,
 };
