@@ -97,7 +97,7 @@ impl MessageGenerator for V21MessageGenerator {
     FrameBuilder::build_call(OcppAction::Heartbeat, HeartbeatRequest {})
   }
 
-  async fn authorize(&self) -> Value {
+  async fn authorize(&self, _tag_id: Option<&str>) -> Value {
     FrameBuilder::build_call(
       OcppAction::Authorize,
       AuthorizeRequest {
@@ -111,7 +111,7 @@ impl MessageGenerator for V21MessageGenerator {
     )
   }
 
-  async fn start_transaction(&self, tag_id: Option<&str>) -> Value {
+  async fn start_transaction(&self) -> Value {
     FrameBuilder::build_call(
       OcppAction::TransactionEvent,
       TransactionEventRequest {
@@ -198,7 +198,7 @@ impl MessageGenerator for V21MessageGenerator {
 }
 
 impl V21MessageGenerator {
-  pub fn new(config: MessageGeneratorConfig) -> Self {
+  pub fn new(config: ChargePointConfig) -> Self {
     Self {
       config,
       id_counter: AtomicUsize::new(1),

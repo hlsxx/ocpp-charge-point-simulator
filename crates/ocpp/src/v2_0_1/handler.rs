@@ -19,12 +19,12 @@ impl V201MessageHandler {
 
 #[async_trait]
 impl MessageHandler for V201MessageHandler {
-  fn parse_ocpp_message(&self, text: &str) -> Result<MessageFrameType> {
-    !unimplemented!()
+  async fn parse_raw_ocpp_msg(&self, _text: &str) -> Result<MessageFrameType> {
+    todo!("OCPP 2.0.1 message parsing is not implemented")
   }
 
-  async fn handle_text_message(&mut self, text: &str) -> Result<Option<String>> {
-    !unimplemented!()
+  async fn handle_text_message(&mut self, _text: &str) -> Result<Option<String>> {
+    todo!("OCPP 2.0.1 message handling is not implemented")
   }
 
   async fn handle_call_result(
@@ -32,6 +32,6 @@ impl MessageHandler for V201MessageHandler {
     msg_id: &str,
     payload: &Value,
   ) -> Result<Option<CommonOcppResponse>> {
-    !unimplemented!()
+    todo!("OCPP 2.0.1 call-result handling is not implemented")
   }
 }

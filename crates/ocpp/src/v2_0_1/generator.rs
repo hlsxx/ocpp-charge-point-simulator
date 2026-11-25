@@ -4,6 +4,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 
 use async_trait::async_trait;
 use chrono::Utc;
+use common::ChargePointConfig;
 use rust_ocpp::v2_0_1::datatypes::transaction_type::TransactionType;
 use rust_ocpp::v2_0_1::enumerations::firmware_status_enum_type::FirmwareStatusEnumType;
 use rust_ocpp::v2_0_1::enumerations::id_token_enum_type::IdTokenEnumType;
@@ -30,7 +31,7 @@ use crate::types::CommonConnectorStatusType;
 use uuid::Uuid;
 
 pub struct V201MessageGenerator {
-  config: MessageGeneratorConfig,
+  config: ChargePointConfig,
   id_counter: AtomicUsize,
 }
 
@@ -94,7 +95,7 @@ impl MessageGenerator for V201MessageGenerator {
     FrameBuilder::build_call(OcppAction::Heartbeat, HeartbeatRequest {})
   }
 
-  async fn authorize(&self) -> Value {
+  async fn authorize(&self, _tag_id: Option<&str>) -> Value {
     FrameBuilder::build_call(
       OcppAction::Authorize,
       AuthorizeRequest {
@@ -108,7 +109,7 @@ impl MessageGenerator for V201MessageGenerator {
     )
   }
 
-  async fn start_transaction(&self, tag_id: Option<&str>) -> Value {
+  async fn start_transaction(&self) -> Value {
     FrameBuilder::build_call(
       OcppAction::TransactionEvent,
       TransactionEventRequest {
@@ -195,7 +196,7 @@ impl MessageGenerator for V201MessageGenerator {
 }
 
 impl V201MessageGenerator {
-  pub fn new(config: MessageGeneratorConfig) -> Self {
+  pub fn new(config: ChargePointConfig) -> Self {
     Self {
       config,
       id_counter: AtomicUsize::new(1),
