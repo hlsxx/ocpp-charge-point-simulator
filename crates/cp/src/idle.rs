@@ -59,7 +59,7 @@ impl ChargePointIdle {
       select! {
         _ = heartbeat_interval.tick() => send(&mut ws_tx, generator.heartbeat().await).await?,
         _ = ws_ping_interval.tick() => {
-            info!("➡️  ping");
+            info!("ping");
             ws_tx.send(Message::Ping(vec![].into())).await?
           }
         _ = txn_session.tick(), if txn_session.is_running() => {
@@ -91,7 +91,6 @@ impl ChargePointIdle {
                         OcppAction::ChangeConfiguration => {
                           let change_configuration_payload = V16MessageHandler::parse_change_configuration_payload(payload)?;
                           match change_configuration_payload.key.as_str() {
-                            // 🔌 Core / Timing
 
                             "HeartbeatInterval" => {
                               let value = change_configuration_payload.value.parse::<u32>()?;
@@ -120,7 +119,6 @@ impl ChargePointIdle {
                               generator.websocket_ping_interval(change_configuration_payload.value.parse::<u32>()?).await
                             },
 
-                            // ⚡ Metering
 
                             "MeterValuesSampledData" => {
                               generator.meter_values_sampled_data(change_configuration_payload.value.clone()).await
@@ -135,7 +133,6 @@ impl ChargePointIdle {
                               generator.stop_txn_aligned_data(change_configuration_payload.value.clone()).await
                             },
 
-                            // 🔄 Transaction behavior
 
                             "TransactionMessageAttempts" => {
                               generator.transaction_message_attempts(change_configuration_payload.value.parse::<u32>()?).await
@@ -147,7 +144,6 @@ impl ChargePointIdle {
                               generator.max_energy_on_invalid_id(change_configuration_payload.value.parse::<u32>()?).await
                             },
 
-                            // 🔐 Authorization
 
                             "AuthorizeRemoteTxRequests" => {
                               generator.authorize_remote_tx_requests(change_configuration_payload.value.parse::<bool>()?).await
@@ -171,7 +167,6 @@ impl ChargePointIdle {
                               generator.authorization_cache_enabled(change_configuration_payload.value.parse::<bool>()?).await
                             },
 
-                            // 💳 Local Authorization List
 
                             "LocalAuthListEnabled" => {
                               generator.local_auth_list_enabled(change_configuration_payload.value.parse::<bool>()?).await
@@ -186,7 +181,6 @@ impl ChargePointIdle {
                               generator.local_auth_list_max_length(change_configuration_payload.value.parse::<u32>()?).await
                             },
 
-                            // 🔌 Connector / Hardware
 
                             "NumberOfConnectors" => {
                               generator.number_of_connectors(change_configuration_payload.value.parse::<u32>()?).await
@@ -195,7 +189,6 @@ impl ChargePointIdle {
                               generator.connector_phase_rotation(change_configuration_payload.value.clone()).await
                             },
 
-                            // ⚡ Smart Charging
 
                             "ChargeProfileMaxStackLevel" => {
                               generator.charge_profile_max_stack_level(change_configuration_payload.value.parse::<u32>()?).await
@@ -207,7 +200,6 @@ impl ChargePointIdle {
                               generator.charging_schedule_max_periods(change_configuration_payload.value.parse::<u32>()?).await
                             },
 
-                            // 📊 Limits / Misc
 
                             "GetConfigurationMaxKeys" => {
                               generator.get_configuration_max_keys(change_configuration_payload.value.parse::<u32>()?).await
@@ -286,7 +278,7 @@ impl ChargePointIdle {
                 }
               }
             },
-            Some(Ok(Message::Pong(_))) => info!("⬅️  pong"),
+            Some(Ok(Message::Pong(_))) => info!("pong"),
             Some(other_msg) => warn!("Another message {other_msg:?}"),
             None => break
           }

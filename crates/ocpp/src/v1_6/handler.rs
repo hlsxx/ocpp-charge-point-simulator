@@ -43,7 +43,7 @@ impl MessageHandler for V16MessageHandler {
         let action = OcppAction::from_str(&action_string)
           .map_err(|err| anyhow::anyhow!("Invalid OCPP action: {}", err))?;
 
-        info!("⬅️  [🔵 Call] {}", action);
+        info!("[Call] {}", action);
 
         Ok(MessageFrameType::V1_6(MessageFrame::Call {
           msg_id,
@@ -52,10 +52,7 @@ impl MessageHandler for V16MessageHandler {
         }))
       }
       ParsedFrame::CallResult { msg_id, payload } => {
-        info!(
-          "⬅️  [🟢 CallResult] {:?}",
-          self.shared_data.get_msg(&msg_id).await
-        );
+        info!("[CallResult] {:?}", self.shared_data.get_msg(&msg_id).await);
 
         Ok(MessageFrameType::V1_6(MessageFrame::CallResult {
           msg_id,
@@ -67,7 +64,7 @@ impl MessageHandler for V16MessageHandler {
         error_code,
         description,
       } => {
-        info!("⬅️  [🔴 CallError] {}", error_code);
+        info!("[CallError] {}", error_code);
 
         Ok(MessageFrameType::V1_6(MessageFrame::CallError {
           msg_id,
@@ -86,12 +83,12 @@ impl MessageHandler for V16MessageHandler {
           action,
           payload,
         } => {
-          // info!("[🔵 Call] {}", action);
+          // info!("[Call] {}", action);
           debug!(?action, msg_id, ?payload);
           return self.handle_call(&msg_id, &action, &payload).await;
         }
         MessageFrame::CallResult { msg_id, payload } => {
-          // info!("[🟢 CallResult]");
+          // info!("[CallResult]");
           debug!(msg_id, ?payload);
           self.handle_call_result(&msg_id, &payload).await?;
           return Ok(None);
@@ -101,7 +98,7 @@ impl MessageHandler for V16MessageHandler {
           error_code,
           description,
         } => {
-          // info!("[🔴 CallError] {}", error_code);
+          // info!("[CallError] {}", error_code);
           debug!(msg_id, error_code, description);
           return self.handle_call_error(&msg_id).await;
         }

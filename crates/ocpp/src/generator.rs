@@ -9,13 +9,11 @@ pub trait MessageBuilder {
 
 #[async_trait]
 pub trait MessageGenerator: Send + Sync {
-  // 🔌 Core / Timing
   async fn heartbeat_interval(&self, _value: u32) {}
   async fn connection_timeout(&self, _value: u32) {}
   async fn reset_retries(&self, _value: u32) {}
   async fn websocket_ping_interval(&self, _value: u32) {}
 
-  // ⚡ Metering
   async fn meter_value_sample_interval(&self, _value: u32) {}
   async fn clock_aligned_data_interval(&self, _value: u32) {}
   async fn meter_values_sampled_data(&self, _value: String) {}
@@ -23,12 +21,10 @@ pub trait MessageGenerator: Send + Sync {
   async fn stop_txn_sampled_data(&self, _value: String) {}
   async fn stop_txn_aligned_data(&self, _value: String) {}
 
-  // 🔄 Transaction behavior
   async fn transaction_message_attempts(&self, _value: u32) {}
   async fn transaction_message_retry_interval(&self, _value: u32) {}
   async fn max_energy_on_invalid_id(&self, _value: u32) {}
 
-  // 🔐 Authorization
   async fn authorize_remote_tx_requests(&self, _state: bool) {}
   async fn stop_transaction_on_ev_side_disconnect(&self, _state: bool) {}
   async fn stop_transaction_on_invalid_id(&self, _state: bool) {}
@@ -37,22 +33,18 @@ pub trait MessageGenerator: Send + Sync {
   async fn local_pre_authorize(&self, _state: bool) {}
   async fn authorization_cache_enabled(&self, _state: bool) {}
 
-  // 💳 Local Authorization List
   async fn local_auth_list_enabled(&self, _state: bool) {}
   async fn local_auth_list_version(&self, _value: i32) {}
   async fn send_local_list_max_length(&self, _value: u32) {}
   async fn local_auth_list_max_length(&self, _value: u32) {}
 
-  // 🔌 Connector / Hardware
   async fn number_of_connectors(&self, _value: u32) {}
   async fn connector_phase_rotation(&self, _value: String) {}
 
-  // ⚡ Smart Charging
   async fn charge_profile_max_stack_level(&self, _value: u32) {}
   async fn charging_schedule_allowed_charging_rate_unit(&self, _value: String) {}
   async fn charging_schedule_max_periods(&self, _value: u32) {}
 
-  // 📊 Limits / Misc
   async fn get_configuration_max_keys(&self, _value: u32) {}
 
   async fn boot_notification(&self) -> Value;

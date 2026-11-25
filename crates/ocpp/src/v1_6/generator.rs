@@ -39,7 +39,7 @@ async fn build_call<T>(
 where
   T: Debug + Serialize,
 {
-  info!("➡️  [🔵 Call] {}", ocpp_action);
+  info!("[Call] {}", ocpp_action);
   debug!(action = %ocpp_action, ?payload);
 
   let msg_id = Uuid::new_v4();
