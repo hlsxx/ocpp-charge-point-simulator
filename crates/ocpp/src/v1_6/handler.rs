@@ -2,6 +2,7 @@ use std::{fmt::Debug, str::FromStr};
 
 use super::types::OcppAction;
 use crate::{
+  frame::{Frame, ParsedFrame},
   handler::{MessageFrame, MessageFrameType, MessageHandler},
   types::CommonOcppResponse,
 };
@@ -33,15 +34,13 @@ impl V16MessageHandler {
 #[async_trait]
 impl MessageHandler for V16MessageHandler {
   async fn parse_raw_ocpp_msg(&self, msg: &str) -> Result<MessageFrameType> {
-    let arr: Vec<Value> = serde_json::from_str(msg)?;
-
-    match arr.first().and_then(|v| v.as_u64()) {
-      Some(2) => {
-        let msg_id = arr[1].as_str().unwrap_or("").to_string();
-        let action_string = arr[2].as_str().unwrap_or("").to_string();
-        let payload = arr[3].clone();
-
-        let action = OcppAction::from_str(action_string.as_str())
+    match Frame::parse(msg)? {
+      ParsedFrame::Call {
+        msg_id,
+        action: action_string,
+        payload,
+      } => {
+        let action = OcppAction::from_str(&action_string)
           .map_err(|err| anyhow::anyhow!("Invalid OCPP action: {}", err))?;
 
         info!("⬅️  [🔵 Call] {}", action);
@@ -52,10 +51,7 @@ impl MessageHandler for V16MessageHandler {
           payload,
         }))
       }
-      Some(3) => {
-        let msg_id = arr[1].as_str().unwrap_or("").to_string();
-        let payload = arr[2].clone();
-
+      ParsedFrame::CallResult { msg_id, payload } => {
         info!(
           "⬅️  [🟢 CallResult] {:?}",
           self.shared_data.get_msg(&msg_id).await
@@ -66,11 +62,11 @@ impl MessageHandler for V16MessageHandler {
           payload,
         }))
       }
-      Some(4) => {
-        let msg_id = arr[1].as_str().unwrap_or("").to_string();
-        let error_code = arr[2].as_str().unwrap_or("").to_string();
-        let description = arr[3].as_str().unwrap_or("").to_string();
-
+      ParsedFrame::CallError {
+        msg_id,
+        error_code,
+        description,
+      } => {
         info!("⬅️  [🔴 CallError] {}", error_code);
 
         Ok(MessageFrameType::V1_6(MessageFrame::CallError {
@@ -79,7 +75,6 @@ impl MessageHandler for V16MessageHandler {
           description,
         }))
       }
-      _ => anyhow::bail!("Unknown OCPP v1.6 message type"),
     }
   }
 

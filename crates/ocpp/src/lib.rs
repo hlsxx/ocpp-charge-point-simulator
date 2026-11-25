@@ -1,3 +1,4 @@
+pub mod frame;
 pub mod generator;
 pub mod handler;
 pub mod mock_data;
